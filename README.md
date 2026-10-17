@@ -15,9 +15,9 @@ A 股红利策略基金的年化收益、规模与费率对比。收益按复权
 
 ## HTML 阅读
 
-入口：[doc/index.html](doc/index.html)
+入口：[docs/index.html](docs/index.html)
 
-直接用浏览器打开 `doc/index.html` 即可，包含目录页、响应式表格和打印样式。HTML 由 Markdown 生成，修改文档后需重新生成：
+直接用浏览器打开 `docs/index.html` 即可，包含目录页、响应式表格和打印样式。HTML 由 Markdown 生成，修改文档后需重新生成：
 
 ```bash
 python3 -m venv tmp/.venv
@@ -44,7 +44,7 @@ tmp/.venv/bin/python tmp/build_doc.py
 .
 ├── 红利基金年化收益排行.md
 ├── 红利低波基金年化收益排行.md
-├── doc/
+├── docs/
 │   ├── index.html
 │   ├── 红利基金年化收益排行.html
 │   ├── 红利低波基金年化收益排行.html

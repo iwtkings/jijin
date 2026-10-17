@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从项目根目录的 Markdown 生成 doc/ 下的 HTML 文档与目录页。
+"""从项目根目录的 Markdown 生成 docs/ 下的 HTML 文档与目录页。
 
 用法（不要直接 pip install，Homebrew Python 受 PEP 668 限制）：
     python3 -m venv tmp/.venv
@@ -22,7 +22,7 @@ except ImportError:
     )
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "doc"
+OUT = ROOT / "docs"
 
 DOCS = [
     {
@@ -151,7 +151,7 @@ def main() -> None:
 
     print("已生成：")
     for name in ["index.html"] + [d["out"] for d in DOCS]:
-        print(f"  doc/{name}")
+        print(f"  docs/{name}")
 
 
 if __name__ == "__main__":
