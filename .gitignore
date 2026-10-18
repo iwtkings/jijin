@@ -21,3 +21,6 @@ bin-release/
 tmp/.venv/
 __pycache__/
 *.pyc
+
+# 榜单抓取的中间数据（可重跑脚本生成，不入库）
+tmp/data/
