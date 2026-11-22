@@ -64,7 +64,7 @@ def main() -> None:
         d = dets[f["code"]]
         estab = d.get("estab") or ""
         scale = (d.get("nav") or 0) / 1e8
-        if not estab or estab > "2023-10-30":
+        if not estab or estab > "2023-11-20":
             continue
         todo3.append((f, d, scale))
     step["3y"] = len(todo3)

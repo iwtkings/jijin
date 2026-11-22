@@ -14,7 +14,7 @@ tmp/.venv/bin/python tmp/screen_fixedplus.py        # 固收+分档 → fixedplu
 
 `tmp/refresh_lib.py` 是公共取数库：复权净值（`pingzhongdata`）、规模/费率/成立日
 （`FundMNDetailInformation`）、阶段涨幅（`rankhandler`），缓存全部落
-`tmp/data/refresh/`。收益窗口以 2026-10-30 为终点，规模取 2026-09-30 三季报。
+`tmp/data/refresh/`。收益窗口以 2026-11-20 为终点，规模取 2026-09-30 三季报。
 
 ### 基金经理榜
 

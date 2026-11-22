@@ -7,7 +7,7 @@
 - 复权净值序列：pingzhongdata/{code}.js（equityReturn 为日涨跌幅，复利还原）
 - 规模、费率、成立日、类型：fundmobapi FundMNDetailInformation
 
-口径：净值截至 2026-10-30（10-31 为周六），规模取 2026-09-30 三季报。
+口径：净值截至 2026-11-20（11-22 为周日），规模取 2026-09-30 三季报。
 """
 
 from pathlib import Path
@@ -26,7 +26,7 @@ NAVC = CACHE / "nav"
 DETC = CACHE / "detail"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 
-END = date(2026, 10, 30)
+END = date(2026, 11, 20)
 SCALE_END = "2026-09-30"
 
 
