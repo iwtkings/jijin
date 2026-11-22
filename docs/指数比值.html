@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>指数比值 · 基金理财研究</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ---------- 指数比值页 ---------- */
+  .page { padding-bottom: 44px; }
+
+  .page-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 40px 0 20px;
+  }
+
+  .page-head .eyebrow { margin-bottom: 6px; }
+  .page-head h1 { margin: 0 0 4px; font-size: 34px; }
+  .page-head .sub { margin: 0; color: var(--muted); font-size: 15px; }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--navy);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+
+  .icon-btn:hover { border-color: #d0d5dd; box-shadow: 0 6px 16px rgba(16, 24, 40, .06); }
+  .icon-btn:disabled { opacity: .55; cursor: default; }
+  .icon-btn.spinning span { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ratio-card {
+    padding: 28px 30px 24px;
+    background: linear-gradient(135deg, #ffffff 0%, #fbfcfd 100%);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  }
+
+  .ratio-main {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .ratio-value {
+    color: var(--navy);
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ratio-value .slash {
+    margin-left: 4px;
+    color: #98a2b3;
+    font-size: 32px;
+    font-weight: 500;
+  }
+
+  .change {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .change.up { color: #b42318; background: #fef3f2; }
+  .change.down { color: #067647; background: #ecfdf3; }
+  .change.flat { color: var(--muted); background: #f2f4f7; }
+
+  .badge {
+    margin-left: auto;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .badge.mid { color: #175cd3; background: #eff8ff; }
+  .badge.high { color: #b42318; background: #fef3f2; }
+  .badge.low { color: #067647; background: #ecfdf3; }
+  .badge.muted { color: var(--muted); background: #f2f4f7; }
+
+  .meta {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .formula {
+    margin: 6px 0 0;
+    color: #98a2b3;
+    font-size: 13px;
+  }
+
+  .panel {
+    margin-top: 20px;
+    padding: 22px 24px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .panel-head h2 { margin: 0; font-size: 18px; }
+  .hint { color: #98a2b3; font-size: 12px; }
+
+  .chart-wrap { position: relative; margin-top: 12px; }
+  .chart-wrap svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+
+  .chart-loading,
+  .chart-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 14px;
+    background: rgba(255, 255, 255, .72);
+  }
+
+  .chart-error { color: #b42318; }
+  .chart-loading[hidden], .chart-error[hidden] { display: none; }
+
+  .tooltip {
+    position: absolute;
+    z-index: 3;
+    min-width: 156px;
+    padding: 9px 11px;
+    background: rgba(22, 32, 42, .94);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.55;
+    pointer-events: none;
+    transform: translate(-50%, -110%);
+    box-shadow: 0 8px 20px rgba(16, 24, 40, .18);
+  }
+
+  .tooltip[hidden] { display: none; }
+  .tooltip b { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tooltip span { color: #d0d5dd; }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .tab {
+    padding: 9px 0;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #fff;
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+
+  .tab:hover { border-color: #d0d5dd; color: var(--navy); }
+  .tab.active { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 600; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .legend i {
+    display: inline-block;
+    width: 18px;
+    height: 0;
+    margin-right: 6px;
+    border-top: 2px solid;
+    vertical-align: middle;
+  }
+
+  .target-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 14px;
+  }
+
+  .target-card {
+    padding: 18px 20px 16px;
+    background: #fcfcfd;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+
+  .target-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .target-ratio {
+    color: var(--navy);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .target-tag {
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .target-tag.watch { color: #b54708; background: #fffaeb; }
+  .target-tag.low { color: #067647; background: #ecfdf3; }
+
+  .target-points {
+    margin-top: 8px;
+    color: var(--navy);
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .target-points small {
+    margin-left: 4px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .target-sub {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .target-sub b.down { color: #067647; }
+  .target-sub b.up { color: #b42318; }
+
+  .target-formula {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+    color: #98a2b3;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .target-note {
+    margin: 12px 0 0;
+    color: #98a2b3;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .val-section { margin-top: 30px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .section-head h2 { margin: 0; font-size: 18px; }
+
+  .val-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .val-card {
+    padding: 20px 22px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  }
+
+  .val-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .val-name { color: var(--navy); font-weight: 700; }
+  .val-tag { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .val-tag.low { color: #067647; background: #ecfdf3; }
+  .val-tag.high { color: #b42318; background: #fef3f2; }
+  .val-tag.mid { color: #175cd3; background: #eff8ff; }
+
+  .pe-line { display: flex; align-items: baseline; gap: 6px; margin-top: 12px; }
+  .pe { color: var(--navy); font-size: 40px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .pe-unit { color: var(--muted); font-size: 13px; }
+
+  .pct-text { margin: 6px 0 0; font-size: 14px; font-weight: 500; }
+  .pct-text.low { color: #067647; }
+  .pct-text.high { color: #b42318; }
+  .pct-text.mid { color: #175cd3; }
+
+  .val-meta {
+    margin: 12px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .val-meta b { color: #344054; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .source-note {
+    margin: 18px 0 0;
+    color: #98a2b3;
+    font-size: 12px;
+    line-height: 1.75;
+  }
+
+  .skeleton {
+    color: transparent !important;
+    background: linear-gradient(90deg, #eef0f3 25%, #f7f8fa 37%, #eef0f3 63%);
+    background-size: 400% 100%;
+    border-radius: 6px;
+    animation: shimmer 1.4s ease infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  .link-btn {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .link-btn:hover { text-decoration: underline; }
+
+  @media (max-width: 760px) {
+    .page-head { margin: 26px 0 16px; align-items: center; }
+    .page-head h1 { font-size: 28px; }
+    .ratio-card { padding: 22px 20px; }
+    .ratio-value { font-size: 44px; }
+    .ratio-value .slash { font-size: 26px; }
+    .badge { margin-left: 0; }
+    .change { font-size: 14px; }
+    .panel { padding: 18px 16px 16px; }
+    .tabs { gap: 6px; }
+    .tab { font-size: 13px; padding: 8px 0; }
+    .val-grid { grid-template-columns: 1fr; }
+    .target-grid { grid-template-columns: 1fr; }
+    .target-points { font-size: 30px; }
+    .pe { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">基金理财研究</a>
+    <nav class="site-nav">
+      <a href="index.html">文档目录</a>
+      <span aria-hidden="true"> · </span>
+      <a href="指数比值.html">指数比值</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap page">
+  <div class="back"><a href="index.html">← 返回目录</a></div>
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">市场观察 · 指数比值</p>
+      <h1>指数比值</h1>
+      <p class="sub">创业板指 ÷ 中证红利</p>
+    </div>
+    <button class="icon-btn" id="refresh" type="button" title="刷新数据" aria-label="刷新数据">
+      <span aria-hidden="true">↻</span>
+    </button>
+  </div>
+
+  <section class="ratio-card" aria-live="polite">
+    <div class="ratio-main">
+      <div class="ratio-value"><span id="ratio">—</span><span class="slash" aria-hidden="true">/</span></div>
+      <div class="change flat" id="change">加载中</div>
+      <span class="badge muted" id="zone">—</span>
+    </div>
+    <p class="meta"><span id="data-date">正在获取最新行情…</span></p>
+    <p class="formula">创业板指（399006）÷ 中证红利（000922） · 更新于 <span id="updated">—</span></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>比值曲线</h2>
+      <span class="hint">悬停查看每日数值</span>
+    </div>
+    <div class="chart-wrap">
+      <svg id="chart" viewBox="0 0 900 380" role="img" aria-label="创业板指与中证红利比值历史曲线"></svg>
+      <div class="chart-loading" id="chart-loading">加载中…</div>
+      <div class="chart-error" id="chart-error" hidden>
+        行情获取失败，请检查网络后
+        <button class="link-btn" type="button" id="retry">重试</button>
+      </div>
+      <div class="tooltip" id="tooltip" hidden></div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="时间区间">
+      <button class="tab" type="button" data-range="1y" role="tab" aria-selected="false">近 1 年</button>
+      <button class="tab" type="button" data-range="3y" role="tab" aria-selected="false">近 3 年</button>
+      <button class="tab" type="button" data-range="5y" role="tab" aria-selected="false">近 5 年</button>
+      <button class="tab active" type="button" data-range="all" role="tab" aria-selected="true">全部</button>
+    </div>
+    <div class="legend">
+      <span><i style="border-color:#2563eb"></i>比值</span>
+      <span><i style="border-color:#e5484d;border-top-style:dashed"></i>0.70 创业板高估区</span>
+      <span><i style="border-color:#12a150;border-top-style:dashed"></i>0.30 创业板低估区</span>
+    </div>
+  </section>
+
+  <section class="panel target-panel">
+    <div class="panel-head">
+      <h2>目标比值对应点位</h2>
+      <span class="hint">按当前比值折算</span>
+    </div>
+    <div class="target-grid">
+      <article class="target-card" id="target-watch">
+        <div class="target-head">
+          <span class="target-ratio">比值 0.35</span>
+          <span class="target-tag watch">接近低估区</span>
+        </div>
+        <div class="target-points"><span class="points">—</span><small>点</small></div>
+        <div class="target-sub">创业板指 · 较当前 <b>—</b></div>
+        <div class="target-formula">正在获取行情…</div>
+      </article>
+      <article class="target-card" id="target-low">
+        <div class="target-head">
+          <span class="target-ratio">比值 0.30</span>
+          <span class="target-tag low">低估区</span>
+        </div>
+        <div class="target-points"><span class="points">—</span><small>点</small></div>
+        <div class="target-sub">创业板指 · 较当前 <b>—</b></div>
+        <div class="target-formula">正在获取行情…</div>
+      </article>
+    </div>
+    <p class="target-note" id="target-note">目标点位 = 当前创业板指 × 目标比值 ÷ 当前比值；正在获取行情…</p>
+  </section>
+
+  <section class="val-section">
+    <div class="section-head">
+      <h2>指数估值（PE-TTM）</h2>
+      <span class="hint" id="val-date">—</span>
+    </div>
+    <div class="val-grid">
+      <article class="val-card" id="val-a">
+        <div class="val-head">
+          <span class="val-name">创业板指</span>
+          <span class="val-tag mid">加载中</span>
+        </div>
+        <div class="pe-line"><span class="pe skeleton">00.0</span><span class="pe-unit">PE</span></div>
+        <p class="pct-text mid">正在获取估值数据…</p>
+        <p class="val-meta">PB — · 股息率 —</p>
+      </article>
+      <article class="val-card" id="val-b">
+        <div class="val-head">
+          <span class="val-name">中证红利</span>
+          <span class="val-tag mid">加载中</span>
+        </div>
+        <div class="pe-line"><span class="pe skeleton">00.0</span><span class="pe-unit">PE</span></div>
+        <p class="pct-text mid">正在获取估值数据…</p>
+        <p class="val-meta">PB — · 股息率 —</p>
+      </article>
+    </div>
+  </section>
+
+  <p class="source-note">
+    行情优先使用东方财富公开接口，失败时自动切换韭圈儿指数日终序列；估值与历史百分位来自韭圈儿（近 10 年分位口径，数据日见估值区右上角）。
+    每次进入页面或点击刷新都会重新获取。历史百分位只描述当前估值在历史样本中的位置，不代表未来涨跌。本页仅作数据梳理，不构成投资建议。
+  </p>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">历史收益不代表未来表现 · 仅作数据梳理，不构成投资建议</div>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  const CONFIG = {
+    indexA: { secid: "0.399006", eva: "399006.SZ", name: "创业板指", code: "399006" },
+    indexB: { secid: "1.000922", eva: "000922.CSI", name: "中证红利", code: "000922" },
+    high: 0.70,
+    low: 0.30,
+    watch: 0.35,
+  };
+
+  const RANGE_DAYS = { "1y": 365, "3y": 365 * 3, "5y": 365 * 5 };
+  const state = {
+    series: [],
+    priceSource: "东方财富",
+    valDate: "",
+    val: null,
+    range: "all",
+    loading: false,
+    chart: null,
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const ratioEl = $("#ratio");
+  const changeEl = $("#change");
+  const zoneEl = $("#zone");
+  const dataDateEl = $("#data-date");
+  const updatedEl = $("#updated");
+  const chartEl = $("#chart");
+  const chartLoading = $("#chart-loading");
+  const chartError = $("#chart-error");
+  const tooltipEl = $("#tooltip");
+  const refreshBtn = $("#refresh");
+  const valDateEl = $("#val-date");
+
+  const fmt = {
+    ratio: (v) => Number(v).toFixed(4),
+    chg: (v) => `${v >= 0 ? "+" : ""}${Number(v).toFixed(4)}`,
+    pct: (v) => `${v >= 0 ? "+" : ""}${Number(v).toFixed(2)}%`,
+    one: (v) => Number(v).toFixed(1),
+    two: (v) => Number(v).toFixed(2),
+    points: (v) => new Intl.NumberFormat("zh-CN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(v),
+    dateTime: (d) => {
+      const p = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    },
+  };
+
+  function fetchJSON(url, timeout = 15000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    const sep = url.includes("?") ? "&" : "?";
+    return fetch(`${url}${sep}_=${Date.now()}`, {
+      signal: ctrl.signal,
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .finally(() => clearTimeout(timer));
+  }
+
+  async function fetchKline(index) {
+    const url =
+      "https://push2his.eastmoney.com/api/qt/stock/kline/get" +
+      `?secid=${index.secid}` +
+      "&fields1=f1,f2,f3,f4,f5,f6" +
+      "&fields2=f51,f52,f53,f54,f55,f56,f57,f58" +
+      "&klt=101&fqt=1&beg=0&end=20500101&lmt=1000000";
+    const json = await fetchJSON(url, 7000);
+    const klines = json && json.data && json.data.klines;
+    if (!Array.isArray(klines) || klines.length < 2) {
+      throw new Error("K 线数据为空");
+    }
+    return klines.map((line) => {
+      const p = line.split(",");
+      return { date: p[0], close: Number(p[2]) };
+    }).filter((d) => d.date && Number.isFinite(d.close));
+  }
+
+  async function fetchIndexSeries(index) {
+    const res = await fetch("https://pre.jiucaishuo.com/v4/open-ai/index-data", {
+      method: "POST",
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: index.eva,
+        start_time: "2000-01-01",
+        end_time: new Date().toISOString().slice(0, 10),
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const rows = json && json.data;
+    if (!Array.isArray(rows) || rows.length < 3) throw new Error("指数历史为空");
+    const body = rows.slice(1);
+    // 首行通常是指数基日 1000 点，剔除避免起点失真
+    if (body.length && Math.abs(Number(body[0][1]) - 1000) < 0.01) body.shift();
+    return body
+      .map((r) => ({ date: r[0], close: Number(r[1]) }))
+      .filter((d) => d.date && Number.isFinite(d.close));
+  }
+
+  async function fetchValuation() {
+    const json = await fetchJSON(
+      "https://ai2.jiucaishuo.com/api/index-valuation?category=jx"
+    );
+    const rows = (json && json.rows) || [];
+    const a = rows.find((x) => x.code === CONFIG.indexA.eva);
+    const b = rows.find((x) => x.code === CONFIG.indexB.eva);
+    if (!a || !b) throw new Error("估值数据缺少目标指数");
+    return { a, b, date: json.new_update_time || "" };
+  }
+
+  function buildSeries(a, b) {
+    const mapB = new Map(b.map((d) => [d.date, d.close]));
+    return a
+      .filter((d) => mapB.has(d.date))
+      .map((d) => {
+        const closeB = mapB.get(d.date);
+        return { date: d.date, a: d.close, b: closeB, ratio: d.close / closeB };
+      });
+  }
+
+  function setZone(text, kind) {
+    zoneEl.textContent = text;
+    zoneEl.className = `badge ${kind}`;
+  }
+
+  function renderSummary() {
+    if (state.series.length < 2) return;
+    const cur = state.series[state.series.length - 1];
+    const prev = state.series[state.series.length - 2];
+    const chg = cur.ratio - prev.ratio;
+    const pct = (chg / prev.ratio) * 100;
+
+    ratioEl.textContent = fmt.ratio(cur.ratio);
+    changeEl.textContent = `${chg >= 0 ? "▲" : "▼"} ${fmt.chg(chg)}（${fmt.pct(pct)}）`;
+    changeEl.className = `change ${chg > 0 ? "up" : chg < 0 ? "down" : "flat"}`;
+    dataDateEl.textContent = `${cur.date} 收盘 · 行情 ${state.priceSource}`;
+    updatedEl.textContent = fmt.dateTime(new Date());
+
+    if (cur.ratio >= CONFIG.high) {
+      setZone("创业板高估区", "high");
+    } else if (cur.ratio <= CONFIG.low) {
+      setZone("创业板低估区", "low");
+    } else {
+      setZone("中性区间", "mid");
+    }
+  }
+
+  function renderTargets() {
+    if (!state.series.length) return;
+    const last = state.series[state.series.length - 1];
+    const targets = [
+      { sel: "#target-watch", ratio: CONFIG.watch },
+      { sel: "#target-low", ratio: CONFIG.low },
+    ];
+
+    targets.forEach(({ sel, ratio }) => {
+      const card = document.querySelector(sel);
+      if (!card) return;
+      // 目标点位 = 当前创业板指 × 目标比值 ÷ 当前比值
+      const points = (last.a * ratio) / last.ratio;
+      const chg = points / last.a - 1;
+      card.querySelector(".points").textContent = fmt.points(points);
+      const chgEl = card.querySelector(".target-sub b");
+      chgEl.textContent = fmt.pct(chg * 100);
+      chgEl.className = chg < 0 ? "down" : chg > 0 ? "up" : "";
+      card.querySelector(".target-formula").textContent =
+        `${fmt.points(last.a)} × ${ratio.toFixed(2)} ÷ ${last.ratio.toFixed(6)}`;
+    });
+
+    const note = $("#target-note");
+    if (note) {
+      note.textContent =
+        `目标点位 = 当前创业板指 × 目标比值 ÷ 当前比值。当前比值 ${fmt.ratio(last.ratio)}，` +
+        `创业板指 ${fmt.points(last.a)} 点，中证红利 ${fmt.points(last.b)} 点（${last.date} 收盘）。` +
+        `按当前点位比例折算，不考虑分红与成分调整，不构成投资建议。`;
+    }
+  }
+
+  function filterByRange(series, range) {
+    if (range === "all") return series.slice();
+    const days = RANGE_DAYS[range];
+    const end = new Date(series[series.length - 1].date).getTime();
+    const start = end - days * 86400000;
+    const out = series.filter((d) => new Date(d.date).getTime() >= start);
+    return out.length >= 2 ? out : series.slice(-2);
+  }
+
+  function tickLabel(dateStr) {
+    return `${dateStr.slice(2, 4)}/${dateStr.slice(5, 7)}`;
+  }
+
+  function renderChart() {
+    if (!state.series.length) return;
+    const data = filterByRange(state.series, state.range);
+    const wrapW = chartEl.parentElement.clientWidth || 900;
+    const narrow = wrapW < 620;
+    const W = narrow ? 480 : 900;
+    const H = narrow ? 320 : 380;
+    const m = narrow ? { l: 42, r: 14, t: 20, b: 32 } : { l: 56, r: 22, t: 24, b: 36 };
+    const iw = W - m.l - m.r;
+    const ih = H - m.t - m.b;
+    chartEl.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+    const t0 = new Date(data[0].date).getTime();
+    const t1 = new Date(data[data.length - 1].date).getTime();
+    const ratios = data.map((d) => d.ratio);
+
+    let lo = Math.min(...ratios, CONFIG.low);
+    let hi = Math.max(...ratios, CONFIG.high);
+    const pad = Math.max((hi - lo) * 0.06, 0.01);
+    lo -= pad;
+    hi += pad;
+
+    const x = (t) => m.l + ((t - t0) / (t1 - t0 || 1)) * iw;
+    const y = (v) => m.t + ((hi - v) / (hi - lo || 1)) * ih;
+
+    const step = Math.max(1, Math.floor(data.length / 700));
+    const points = data.filter((_, i) => i % step === 0 || i === data.length - 1);
+
+    let path = "";
+    points.forEach((d, i) => {
+      const px = x(new Date(d.date).getTime()).toFixed(2);
+      const py = y(d.ratio).toFixed(2);
+      path += `${i === 0 ? "M" : "L"}${px},${py}`;
+    });
+
+    const areaPath =
+      `M${x(t0).toFixed(2)},${(m.t + ih).toFixed(2)}` +
+      path.replace(/^M/, "L") +
+      `L${x(t1).toFixed(2)},${(m.t + ih).toFixed(2)}Z`;
+
+    const yTicks = narrow ? 4 : 5;
+    const fs = narrow ? 10 : 11;
+    let grid = "";
+    let yLabels = "";
+    for (let i = 0; i < yTicks; i += 1) {
+      const v = lo + ((hi - lo) * i) / (yTicks - 1);
+      const py = y(v).toFixed(2);
+      grid += `<line x1="${m.l}" y1="${py}" x2="${W - m.r}" y2="${py}" stroke="#eef0f3" stroke-width="1"/>`;
+      yLabels += `<text x="${m.l - 8}" y="${Number(py) + 4}" text-anchor="end" font-size="${fs}" fill="#98a2b3">${v.toFixed(2)}</text>`;
+    }
+
+    let xLabels = "";
+    const xTicks = narrow ? 4 : 5;
+    for (let i = 0; i < xTicks; i += 1) {
+      const t = t0 + ((t1 - t0) * i) / (xTicks - 1);
+      const px = x(t).toFixed(2);
+      xLabels += `<text x="${px}" y="${H - 10}" text-anchor="${i === 0 ? "start" : i === xTicks - 1 ? "end" : "middle"}" font-size="${fs}" fill="#98a2b3">${tickLabel(new Date(t).toISOString().slice(0, 10))}</text>`;
+    }
+
+    const yHigh = y(CONFIG.high);
+    const yLow = y(CONFIG.low);
+    const showHigh = CONFIG.high > lo && CONFIG.high < hi;
+    const showLow = CONFIG.low > lo && CONFIG.low < hi;
+
+    const zoneShapes =
+      (showHigh
+        ? `<rect x="${m.l}" y="${m.t}" width="${iw}" height="${Math.max(0, yHigh - m.t).toFixed(2)}" fill="#e5484d" opacity="0.055"/>` +
+          `<line x1="${m.l}" y1="${yHigh.toFixed(2)}" x2="${W - m.r}" y2="${yHigh.toFixed(2)}" stroke="#e5484d" stroke-width="1.4" stroke-dasharray="6 5" opacity="0.85"/>`
+        : "") +
+      (showLow
+        ? `<rect x="${m.l}" y="${yLow.toFixed(2)}" width="${iw}" height="${Math.max(0, m.t + ih - yLow).toFixed(2)}" fill="#12a150" opacity="0.06"/>` +
+          `<line x1="${m.l}" y1="${yLow.toFixed(2)}" x2="${W - m.r}" y2="${yLow.toFixed(2)}" stroke="#12a150" stroke-width="1.4" stroke-dasharray="6 5" opacity="0.85"/>`
+        : "");
+
+    // 阈值文字单独放在最后绘制，并加白底标签，避免被比值线/面积或虚线遮挡
+    if (!state.measureCtx) state.measureCtx = document.createElement("canvas").getContext("2d");
+    const textW = (t) => {
+      state.measureCtx.font = `600 ${fs}px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif`;
+      return state.measureCtx.measureText(t).width;
+    };
+    const highText = "0.70 创业板高估区";
+    const lowText = "0.30 创业板低估区";
+    const highW = textW(highText) + 12;
+    const lowW = textW(lowText) + 12;
+
+    const zoneLabels =
+      (showHigh
+        ? `<g><rect x="${m.l + 2}" y="${(yHigh - 26).toFixed(2)}" width="${highW.toFixed(1)}" height="19" rx="4" fill="#ffffff" fill-opacity="0.94" stroke="#e5484d" stroke-opacity="0.18"/>` +
+          `<text x="${m.l + 8}" y="${(yHigh - 12).toFixed(2)}" font-size="${fs}" font-weight="600" fill="#b42318">${highText}</text></g>`
+        : "") +
+      (showLow
+        ? `<g><rect x="${m.l + 2}" y="${(yLow + 7).toFixed(2)}" width="${lowW.toFixed(1)}" height="19" rx="4" fill="#ffffff" fill-opacity="0.94" stroke="#12a150" stroke-opacity="0.18"/>` +
+          `<text x="${m.l + 8}" y="${(yLow + 21).toFixed(2)}" font-size="${fs}" font-weight="600" fill="#067647">${lowText}</text></g>`
+        : "");
+
+    const last = data[data.length - 1];
+    const lastX = x(new Date(last.date).getTime()).toFixed(2);
+    const lastY = y(last.ratio).toFixed(2);
+
+    chartEl.innerHTML = `
+      <defs>
+        <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2563eb" stop-opacity="0.14"/>
+          <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${zoneShapes}
+      ${grid}
+      <path d="${areaPath}" fill="url(#areaFill)"/>
+      <path d="${path}" fill="none" stroke="#2563eb" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round"/>
+      <line id="hover-line" x1="0" y1="${m.t}" x2="0" y2="${m.t + ih}" stroke="#98a2b3" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+      <circle id="hover-dot" cx="0" cy="0" r="3.6" fill="#2563eb" stroke="#fff" stroke-width="1.6" opacity="0"/>
+      <circle cx="${lastX}" cy="${lastY}" r="4.2" fill="#2563eb" stroke="#fff" stroke-width="2"/>
+      ${zoneLabels}
+      ${yLabels}
+      ${xLabels}
+    `;
+
+    state.chart = { data, m, iw, ih, t0, t1, x, y, W, H };
+    chartLoading.hidden = true;
+    chartError.hidden = true;
+    tooltipEl.hidden = true;
+  }
+
+  function nearestIndex(px) {
+    const c = state.chart;
+    if (!c) return -1;
+    const t = c.t0 + ((px - c.m.l) / c.iw) * (c.t1 - c.t0);
+    const target = t;
+    const arr = c.data;
+    let lo = 0;
+    let hi = arr.length - 1;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (new Date(arr[mid].date).getTime() < target) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo > 0) {
+      const prev = lo - 1;
+      if (
+        Math.abs(new Date(arr[prev].date).getTime() - target) <
+        Math.abs(new Date(arr[lo].date).getTime() - target)
+      ) {
+        return prev;
+      }
+    }
+    return lo;
+  }
+
+  function showTooltip(evt) {
+    if (!state.chart) return;
+    const rect = chartEl.getBoundingClientRect();
+    if (!rect.width) return;
+    const px = ((evt.clientX - rect.left) / rect.width) * state.chart.W;
+    if (px < state.chart.m.l || px > state.chart.W - state.chart.m.r) {
+      hideTooltip();
+      return;
+    }
+    const idx = nearestIndex(px);
+    if (idx < 0) return;
+    const d = state.chart.data[idx];
+    const cx = state.chart.x(new Date(d.date).getTime());
+    const cy = state.chart.y(d.ratio);
+    const line = $("#hover-line");
+    const dot = $("#hover-dot");
+    if (line) {
+      line.setAttribute("x1", cx);
+      line.setAttribute("x2", cx);
+      line.setAttribute("opacity", "1");
+    }
+    if (dot) {
+      dot.setAttribute("cx", cx);
+      dot.setAttribute("cy", cy);
+      dot.setAttribute("opacity", "1");
+    }
+
+    tooltipEl.innerHTML =
+      `<div><span>${d.date}</span></div>` +
+      `<div><b>${fmt.ratio(d.ratio)}</b> <span>比值</span></div>` +
+      `<div><span>创业板指</span> ${d.a.toFixed(2)}</div>` +
+      `<div><span>中证红利</span> ${d.b.toFixed(2)}</div>`;
+    tooltipEl.hidden = false;
+
+    const wrapRect = chartEl.parentElement.getBoundingClientRect();
+    const left = (cx / state.chart.W) * rect.width + (rect.left - wrapRect.left);
+    const top = (cy / state.chart.H) * rect.height + (rect.top - wrapRect.top);
+    tooltipEl.style.left = `${Math.min(Math.max(left, 86), wrapRect.width - 86)}px`;
+    tooltipEl.style.top = `${top - 8}px`;
+  }
+
+  function hideTooltip() {
+    tooltipEl.hidden = true;
+    const line = $("#hover-line");
+    const dot = $("#hover-dot");
+    if (line) line.setAttribute("opacity", "0");
+    if (dot) dot.setAttribute("opacity", "0");
+  }
+
+  function renderValCard(id, item) {
+    const card = document.querySelector(id);
+    if (!card) return;
+    if (!item) {
+      card.innerHTML =
+        `<div class="val-head"><span class="val-name">—</span><span class="val-tag mid">暂无</span></div>` +
+        `<p class="val-meta">估值数据暂不可用，点击右上角刷新重试。</p>`;
+      return;
+    }
+
+    const pePct = Number(item.pe_pct);
+    const isLow = pePct < 50;
+    const kind = /低/.test(item.desc || "") ? "low" : /高/.test(item.desc || "") ? "high" : "mid";
+    const tag = kind === "low" ? "低估" : kind === "high" ? "高估" : "中性";
+    const pctText = isLow
+      ? `比历史上 ${Math.round(100 - pePct)}% 的时间便宜`
+      : `比历史上 ${Math.round(pePct)}% 的时间贵`;
+
+    card.innerHTML =
+      `<div class="val-head">` +
+        `<span class="val-name">${item.name}</span>` +
+        `<span class="val-tag ${kind}">${tag}</span>` +
+      `</div>` +
+      `<div class="pe-line"><span class="pe">${fmt.one(item.pe)}</span><span class="pe-unit">PE</span></div>` +
+      `<p class="pct-text ${kind}">${pctText}</p>` +
+      `<p class="val-meta"><b>PB ${fmt.two(item.pb)}</b>（${fmt.one(item.pb_pct)}% 分位）· 股息率 <b>${fmt.two(item.xilv)}%</b></p>`;
+  }
+
+  function setLoading(isLoading) {
+    state.loading = isLoading;
+    refreshBtn.disabled = isLoading;
+    refreshBtn.classList.toggle("spinning", isLoading);
+  }
+
+  async function loadMarket() {
+    let a = null;
+    let b = null;
+    let source = "东方财富";
+
+    const [ka, kb] = await Promise.allSettled([
+      fetchKline(CONFIG.indexA),
+      fetchKline(CONFIG.indexB),
+    ]);
+    if (ka.status === "fulfilled" && kb.status === "fulfilled") {
+      a = ka.value;
+      b = kb.value;
+    } else {
+      // 东方财富偶发限流时，自动切到韭圈儿的指数日终序列
+      source = "韭圈儿";
+      const [sa, sb] = await Promise.allSettled([
+        fetchIndexSeries(CONFIG.indexA),
+        fetchIndexSeries(CONFIG.indexB),
+      ]);
+      if (sa.status === "fulfilled" && sb.status === "fulfilled") {
+        a = sa.value;
+        b = sb.value;
+      }
+    }
+
+    if (!a || !b) {
+      chartLoading.hidden = true;
+      if (state.series.length) {
+        dataDateEl.textContent = `${state.series[state.series.length - 1].date} 收盘 · 刷新失败，显示上次数据`;
+        return;
+      }
+      chartError.hidden = false;
+      dataDateEl.textContent = "行情获取失败";
+      ratioEl.textContent = "—";
+      changeEl.textContent = "—";
+      changeEl.className = "change flat";
+      setZone("获取失败", "muted");
+      document.querySelectorAll(".target-card").forEach((card) => {
+        card.querySelector(".points").textContent = "—";
+        const chg = card.querySelector(".target-sub b");
+        chg.textContent = "—";
+        chg.className = "";
+        card.querySelector(".target-formula").textContent = "行情获取失败";
+      });
+      const targetNote = $("#target-note");
+      if (targetNote) targetNote.textContent = "行情获取失败，暂无法折算目标点位。";
+      return;
+    }
+
+    const series = buildSeries(a, b);
+    if (series.length < 2) {
+      chartLoading.hidden = true;
+      chartError.hidden = false;
+      return;
+    }
+    state.series = series;
+    state.priceSource = source;
+    renderSummary();
+    renderChart();
+    renderTargets();
+  }
+
+  async function loadValuation() {
+    try {
+      const v = await fetchValuation();
+      state.val = v;
+      state.valDate = v.date;
+      valDateEl.textContent = v.date ? `数据日 ${v.date} · 近 10 年分位` : "近 10 年分位";
+      renderValCard("#val-a", v.a);
+      renderValCard("#val-b", v.b);
+    } catch (err) {
+      console.error(err);
+      if (state.val) {
+        valDateEl.textContent = "刷新失败，显示上次估值";
+        return;
+      }
+      valDateEl.textContent = "估值数据暂不可用";
+      renderValCard("#val-a", null);
+      renderValCard("#val-b", null);
+    }
+  }
+
+  async function loadAll() {
+    if (state.loading) return;
+    setLoading(true);
+    chartLoading.hidden = false;
+    chartError.hidden = true;
+    tooltipEl.hidden = true;
+
+    await Promise.allSettled([loadMarket(), loadValuation()]);
+    setLoading(false);
+  }
+
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const range = btn.getAttribute("data-range");
+      if (!range || range === state.range) return;
+      state.range = range;
+      document.querySelectorAll(".tab").forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      tooltipEl.hidden = true;
+      if (state.series.length) renderChart();
+    });
+  });
+
+  chartEl.addEventListener("pointermove", showTooltip);
+  chartEl.addEventListener("pointerleave", hideTooltip);
+  refreshBtn.addEventListener("click", loadAll);
+  $("#retry").addEventListener("click", loadAll);
+
+  let resizeTimer = 0;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (state.series.length) renderChart();
+    }, 150);
+  });
+
+  loadAll();
+})();
+</script>
+</body>
+</html>

@@ -4,6 +4,20 @@
 
 ## 榜单复现步骤
 
+### 基金榜单（红利 / 红利低波 / 固收+）
+
+```bash
+tmp/.venv/bin/python tmp/screen_theme.py dividend   # 红利全量重筛 → tmp/data/refresh/theme_dividend.json
+tmp/.venv/bin/python tmp/screen_theme.py lowvol     # 红利低波 → theme_lowvol.json
+tmp/.venv/bin/python tmp/screen_fixedplus.py        # 固收+分档 → fixedplus.json
+```
+
+`tmp/refresh_lib.py` 是公共取数库：复权净值（`pingzhongdata`）、规模/费率/成立日
+（`FundMNDetailInformation`）、阶段涨幅（`rankhandler`），缓存全部落
+`tmp/data/refresh/`。收益窗口以 2026-10-30 为终点，规模取 2026-09-30 三季报。
+
+### 基金经理榜
+
 `金牌基金经理排行.md` 的数据由下面这条流水线生成，按顺序执行：
 
 ```bash

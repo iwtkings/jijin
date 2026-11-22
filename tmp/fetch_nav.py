@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "tmp" / "data"
 CACHE = DATA / "nav"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-TODAY = date(2026, 10, 18)
+TODAY = date(2026, 10, 30)  # 最近交易日（10-31 为周六，净值未出）
 START_3Y = TODAY - timedelta(days=365 * 3)
 
 

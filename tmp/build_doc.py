@@ -31,7 +31,7 @@ DOCS = [
         "title": "A 股红利基金年化收益排行梳理",
         "tag": "宽基红利",
         "desc": "覆盖央企/国企红利、中证红利、上证红利、深证红利、红利质量、红利潜力等 A 股红利指数基金，按近 3 年、近 5 年年化收益排序，并对比规模与费率。",
-        "meta": "16 只主榜 · 近 3 年 / 近 5 年",
+        "meta": "18 只主榜 · 近 3 年 / 近 5 年",
     },
     {
         "src": "红利低波基金年化收益排行.md",
@@ -47,7 +47,7 @@ DOCS = [
         "title": "固收+基金年化收益排行梳理（低波 / 中波 / 高波）",
         "tag": "固收+",
         "desc": "覆盖二级债基与偏债混合基金，按近 3 年波动率分低/中/高三档，对比近 3 年、近 5 年年化、回撤、规模与费率。",
-        "meta": "335 只入样 · 低 / 中 / 高波",
+        "meta": "337 只入样 · 低 / 中 / 高波",
     },
     {
         "src": "金牌基金经理评定标准.md",
@@ -62,8 +62,20 @@ DOCS = [
         "out": "金牌基金经理排行.html",
         "title": "金牌基金经理排行（权益 / 固收+）",
         "tag": "经理排行",
-        "desc": "按六维打分对 259 位任职满 5 年、在管规模 50 亿以上的经理排序，分权益与固收+两榜，并列出各自管理的热门基金。",
-        "meta": "259 位入样 · 权益 / 固收+",
+        "desc": "按六维打分对 225 位任职满 5 年、在管规模 50 亿以上的经理排序，分权益与固收+两榜，并列出各自管理的热门基金。",
+        "meta": "225 位入样 · 权益 / 固收+",
+    },
+]
+
+# 不经过 Markdown 转换的静态页面（手工维护，构建时只负责挂目录卡片）
+STATIC_DOCS = [
+    {
+        "out": "指数比值.html",
+        "title": "指数比值（创业板指 ÷ 中证红利）",
+        "tag": "市场观察",
+        "desc": "创业板指与中证红利比值的实时曲线、高低估区间与两个指数的 PE / PB / 股息率历史分位，进入页面自动取数。",
+        "meta": "实时数据 · 东方财富 / 韭圈儿",
+        "date": "实时",
     },
 ]
 
@@ -95,7 +107,7 @@ PAGE = """<!DOCTYPE html>
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="index.html">基金理财研究</a>
-    <nav class="site-nav"><a href="index.html">文档目录</a></nav>
+    <nav class="site-nav"><a href="index.html">文档目录</a><span aria-hidden="true"> · </span><a href="指数比值.html">指数比值</a></nav>
   </div>
 </header>
 <main class="wrap">
@@ -105,7 +117,7 @@ PAGE = """<!DOCTYPE html>
   </article>
 </main>
 <footer class="site-footer">
-  <div class="wrap">数据截至 2026-10-16 · 历史收益不代表未来表现 · 仅作数据梳理，不构成投资建议</div>
+  <div class="wrap">数据截至 2026-10-30 · 规模截至 2026-09-30 · 历史收益不代表未来表现 · 仅作数据梳理，不构成投资建议</div>
 </footer>
 </body>
 </html>
@@ -141,8 +153,9 @@ INDEX = """<!DOCTYPE html>
     <h3>阅读说明</h3>
     <ul>
       <li>红利两篇口径不同：宽基红利不含红利低波，红利低波单独成篇；固收+按近 3 年波动率分低/中/高三档，不与红利混排。</li>
+      <li>《指数比值》是实时页面，每次打开都会重新获取行情与估值，不随文档快照固化。</li>
       <li>《金牌基金经理评定标准》是方法论文档，《金牌基金经理排行》按该标准对权益与固收+经理分榜排序，两张榜的分数不可跨榜比较。</li>
-      <li>收益数据截至 2026-10-16，规模数据截至 2026-06-30；费率 = 管理费 + 托管费，不含申购费与销售服务费。</li>
+      <li>收益数据截至 2026-10-30，规模数据截至 2026-09-30；费率 = 管理费 + 托管费，不含申购费与销售服务费。</li>
       <li>“近 3 年年化”是平均每年的复利年化，不是三年收益加总，也不是年度收益的算术平均。</li>
     </ul>
   </section>
@@ -168,15 +181,19 @@ def main() -> None:
         <div class="card-top"><span class="tag">{d["tag"]}</span><span class="arrow">→</span></div>
         <h2>{d["title"]}</h2>
         <p>{d["desc"]}</p>
-        <div class="card-meta"><span>{d["meta"]}</span><span>2026-10-16</span></div>
+        <div class="card-meta"><span>{d["meta"]}</span><span>{d.get("date", "2026-10-30")}</span></div>
       </a>'''
-        for d in DOCS
+        for d in STATIC_DOCS + DOCS
     )
     (OUT / "index.html").write_text(INDEX.format(cards=cards), encoding="utf-8")
 
     print("已生成：")
     for name in ["index.html"] + [d["out"] for d in DOCS]:
         print(f"  docs/{name}")
+    if STATIC_DOCS:
+        print("静态页（手工维护，不重建）：")
+        for d in STATIC_DOCS:
+            print(f"  docs/{d['out']}")
 
 
 if __name__ == "__main__":
