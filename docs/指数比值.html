@@ -133,7 +133,7 @@
   .hint { color: #98a2b3; font-size: 12px; }
 
   .chart-wrap { position: relative; margin-top: 12px; }
-  .chart-wrap svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+  .chart-wrap .echarts { width: 100%; height: 380px; }
 
   .chart-loading,
   .chart-error {
@@ -150,25 +150,6 @@
 
   .chart-error { color: #b42318; }
   .chart-loading[hidden], .chart-error[hidden] { display: none; }
-
-  .tooltip {
-    position: absolute;
-    z-index: 3;
-    min-width: 156px;
-    padding: 9px 11px;
-    background: rgba(22, 32, 42, .94);
-    border-radius: 8px;
-    color: #fff;
-    font-size: 12px;
-    line-height: 1.55;
-    pointer-events: none;
-    transform: translate(-50%, -110%);
-    box-shadow: 0 8px 20px rgba(16, 24, 40, .18);
-  }
-
-  .tooltip[hidden] { display: none; }
-  .tooltip b { font-size: 14px; font-variant-numeric: tabular-nums; }
-  .tooltip span { color: #d0d5dd; }
 
   .tabs {
     display: grid;
@@ -392,6 +373,7 @@
     .tab { font-size: 13px; padding: 8px 0; }
     .val-grid { grid-template-columns: 1fr; }
     .target-grid { grid-template-columns: 1fr; }
+    .chart-wrap .echarts { height: 320px; }
     .target-points { font-size: 30px; }
     .pe { font-size: 36px; }
   }
@@ -438,16 +420,15 @@
   <section class="panel">
     <div class="panel-head">
       <h2>比值曲线</h2>
-      <span class="hint">悬停查看每日数值</span>
+      <span class="hint" id="chart-hint">滚轮缩放 · 拖动平移 · 双击重置</span>
     </div>
     <div class="chart-wrap">
-      <svg id="chart" viewBox="0 0 900 380" role="img" aria-label="创业板指与中证红利比值历史曲线"></svg>
+      <div id="chart" class="echarts" role="img" aria-label="创业板指与中证红利比值历史曲线"></div>
       <div class="chart-loading" id="chart-loading">加载中…</div>
       <div class="chart-error" id="chart-error" hidden>
         行情获取失败，请检查网络后
         <button class="link-btn" type="button" id="retry">重试</button>
       </div>
-      <div class="tooltip" id="tooltip" hidden></div>
     </div>
     <div class="tabs" role="tablist" aria-label="时间区间">
       <button class="tab" type="button" data-range="1y" role="tab" aria-selected="false">近 1 年</button>
@@ -527,6 +508,7 @@
   <div class="wrap">历史收益不代表未来表现 · 仅作数据梳理，不构成投资建议</div>
 </footer>
 
+<script src="vendor/echarts.min.js"></script>
 <script>
 (() => {
   "use strict";
@@ -547,7 +529,7 @@
     val: null,
     range: "all",
     loading: false,
-    chart: null,
+    narrow: false,
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -559,7 +541,6 @@
   const chartEl = $("#chart");
   const chartLoading = $("#chart-loading");
   const chartError = $("#chart-error");
-  const tooltipEl = $("#tooltip");
   const refreshBtn = $("#refresh");
   const valDateEl = $("#val-date");
 
@@ -725,206 +706,182 @@
     return out.length >= 2 ? out : series.slice(-2);
   }
 
-  function tickLabel(dateStr) {
-    return `${dateStr.slice(2, 4)}/${dateStr.slice(5, 7)}`;
+  let chart = null;
+
+  function initChart() {
+    if (!window.echarts) {
+      chartLoading.hidden = true;
+      chartError.hidden = false;
+      chartError.textContent = "图表库加载失败，请检查 vendor/echarts.min.js";
+      return false;
+    }
+    chart = echarts.init(chartEl, null, { renderer: "canvas" });
+    chartEl.addEventListener("dblclick", () => {
+      chart.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
+    });
+    return true;
   }
 
   function renderChart() {
-    if (!state.series.length) return;
+    if (!state.series.length || !chart) return;
     const data = filterByRange(state.series, state.range);
-    const wrapW = chartEl.parentElement.clientWidth || 900;
-    const narrow = wrapW < 620;
-    const W = narrow ? 480 : 900;
-    const H = narrow ? 320 : 380;
-    const m = narrow ? { l: 42, r: 14, t: 20, b: 32 } : { l: 56, r: 22, t: 24, b: 36 };
-    const iw = W - m.l - m.r;
-    const ih = H - m.t - m.b;
-    chartEl.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const narrow = chartEl.clientWidth < 620;
+    state.narrow = narrow;
+    const chartHint = $("#chart-hint");
+    if (chartHint) {
+      chartHint.textContent = narrow
+        ? "双指缩放 · 拖动平移"
+        : "滚轮缩放 · 拖动平移 · 双击重置";
+    }
 
-    const t0 = new Date(data[0].date).getTime();
-    const t1 = new Date(data[data.length - 1].date).getTime();
     const ratios = data.map((d) => d.ratio);
-
     let lo = Math.min(...ratios, CONFIG.low);
     let hi = Math.max(...ratios, CONFIG.high);
     const pad = Math.max((hi - lo) * 0.06, 0.01);
     lo -= pad;
     hi += pad;
 
-    const x = (t) => m.l + ((t - t0) / (t1 - t0 || 1)) * iw;
-    const y = (v) => m.t + ((hi - v) / (hi - lo || 1)) * ih;
-
-    const step = Math.max(1, Math.floor(data.length / 700));
-    const points = data.filter((_, i) => i % step === 0 || i === data.length - 1);
-
-    let path = "";
-    points.forEach((d, i) => {
-      const px = x(new Date(d.date).getTime()).toFixed(2);
-      const py = y(d.ratio).toFixed(2);
-      path += `${i === 0 ? "M" : "L"}${px},${py}`;
-    });
-
-    const areaPath =
-      `M${x(t0).toFixed(2)},${(m.t + ih).toFixed(2)}` +
-      path.replace(/^M/, "L") +
-      `L${x(t1).toFixed(2)},${(m.t + ih).toFixed(2)}Z`;
-
-    const yTicks = narrow ? 4 : 5;
-    const fs = narrow ? 10 : 11;
-    let grid = "";
-    let yLabels = "";
-    for (let i = 0; i < yTicks; i += 1) {
-      const v = lo + ((hi - lo) * i) / (yTicks - 1);
-      const py = y(v).toFixed(2);
-      grid += `<line x1="${m.l}" y1="${py}" x2="${W - m.r}" y2="${py}" stroke="#eef0f3" stroke-width="1"/>`;
-      yLabels += `<text x="${m.l - 8}" y="${Number(py) + 4}" text-anchor="end" font-size="${fs}" fill="#98a2b3">${v.toFixed(2)}</text>`;
-    }
-
-    let xLabels = "";
-    const xTicks = narrow ? 4 : 5;
-    for (let i = 0; i < xTicks; i += 1) {
-      const t = t0 + ((t1 - t0) * i) / (xTicks - 1);
-      const px = x(t).toFixed(2);
-      xLabels += `<text x="${px}" y="${H - 10}" text-anchor="${i === 0 ? "start" : i === xTicks - 1 ? "end" : "middle"}" font-size="${fs}" fill="#98a2b3">${tickLabel(new Date(t).toISOString().slice(0, 10))}</text>`;
-    }
-
-    const yHigh = y(CONFIG.high);
-    const yLow = y(CONFIG.low);
-    const showHigh = CONFIG.high > lo && CONFIG.high < hi;
-    const showLow = CONFIG.low > lo && CONFIG.low < hi;
-
-    const zoneShapes =
-      (showHigh
-        ? `<rect x="${m.l}" y="${m.t}" width="${iw}" height="${Math.max(0, yHigh - m.t).toFixed(2)}" fill="#e5484d" opacity="0.055"/>` +
-          `<line x1="${m.l}" y1="${yHigh.toFixed(2)}" x2="${W - m.r}" y2="${yHigh.toFixed(2)}" stroke="#e5484d" stroke-width="1.4" stroke-dasharray="6 5" opacity="0.85"/>`
-        : "") +
-      (showLow
-        ? `<rect x="${m.l}" y="${yLow.toFixed(2)}" width="${iw}" height="${Math.max(0, m.t + ih - yLow).toFixed(2)}" fill="#12a150" opacity="0.06"/>` +
-          `<line x1="${m.l}" y1="${yLow.toFixed(2)}" x2="${W - m.r}" y2="${yLow.toFixed(2)}" stroke="#12a150" stroke-width="1.4" stroke-dasharray="6 5" opacity="0.85"/>`
-        : "");
-
-    // 阈值文字单独放在最后绘制，并加白底标签，避免被比值线/面积或虚线遮挡
-    if (!state.measureCtx) state.measureCtx = document.createElement("canvas").getContext("2d");
-    const textW = (t) => {
-      state.measureCtx.font = `600 ${fs}px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif`;
-      return state.measureCtx.measureText(t).width;
+    const labelBase = {
+      show: true,
+      backgroundColor: "rgba(255,255,255,.94)",
+      padding: [3, 6],
+      borderRadius: 4,
+      fontSize: narrow ? 10 : 11,
+      fontWeight: 600,
     };
-    const highText = "0.70 创业板高估区";
-    const lowText = "0.30 创业板低估区";
-    const highW = textW(highText) + 12;
-    const lowW = textW(lowText) + 12;
 
-    const zoneLabels =
-      (showHigh
-        ? `<g><rect x="${m.l + 2}" y="${(yHigh - 26).toFixed(2)}" width="${highW.toFixed(1)}" height="19" rx="4" fill="#ffffff" fill-opacity="0.94" stroke="#e5484d" stroke-opacity="0.18"/>` +
-          `<text x="${m.l + 8}" y="${(yHigh - 12).toFixed(2)}" font-size="${fs}" font-weight="600" fill="#b42318">${highText}</text></g>`
-        : "") +
-      (showLow
-        ? `<g><rect x="${m.l + 2}" y="${(yLow + 7).toFixed(2)}" width="${lowW.toFixed(1)}" height="19" rx="4" fill="#ffffff" fill-opacity="0.94" stroke="#12a150" stroke-opacity="0.18"/>` +
-          `<text x="${m.l + 8}" y="${(yLow + 21).toFixed(2)}" font-size="${fs}" font-weight="600" fill="#067647">${lowText}</text></g>`
-        : "");
+    chart.setOption({
+      animationDuration: 400,
+      aria: { enabled: true },
+      grid: {
+        left: narrow ? 44 : 56,
+        right: narrow ? 14 : 22,
+        top: 26,
+        bottom: 28,
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "line", lineStyle: { color: "#98a2b3", type: "dashed" } },
+        backgroundColor: "rgba(22,32,42,.94)",
+        borderWidth: 0,
+        padding: [9, 11],
+        textStyle: { color: "#fff", fontSize: 12 },
+        extraCssText: "box-shadow:0 8px 20px rgba(16,24,40,.18);border-radius:8px;",
+        formatter: (params) => {
+          const p = params && params[0];
+          if (!p || !p.data) return "";
+          const d = p.data;
+          const ratio = Number(d.value[1]).toFixed(4);
+          return (
+            `<div style="color:#d0d5dd">${d.value[0]}</div>` +
+            `<div style="margin:2px 0 4px"><b style="font-size:14px">${ratio}</b> <span style="color:#d0d5dd">比值</span></div>` +
+            `<div>创业板指 ${d.a.toFixed(2)}</div>` +
+            `<div>中证红利 ${d.b.toFixed(2)}</div>`
+          );
+        },
+      },
+      xAxis: {
+        type: "time",
+        boundaryGap: false,
+        splitNumber: narrow ? 4 : 5,
+        axisLine: { lineStyle: { color: "#e4e7ec" } },
+        axisTick: { show: false },
+        axisLabel: {
+          color: "#98a2b3",
+          fontSize: narrow ? 10 : 11,
+          hideOverlap: true,
+          showMinLabel: true,
+          showMaxLabel: true,
+          formatter: "{yy}/{MM}",
+        },
+        splitLine: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        min: Number(lo.toFixed(4)),
+        max: Number(hi.toFixed(4)),
+        splitNumber: narrow ? 4 : 5,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: "#98a2b3",
+          fontSize: narrow ? 10 : 11,
+          formatter: (v) => Number(v).toFixed(2),
+        },
+        splitLine: { lineStyle: { color: "#eef0f3" } },
+      },
+      dataZoom: [
+        {
+          type: "inside",
+          xAxisIndex: 0,
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          moveOnMouseWheel: false,
+          filterMode: "none",
+        },
+      ],
+      series: [
+        {
+          name: "比值",
+          type: "line",
+          data: data.map((d) => ({ value: [d.date, d.ratio], a: d.a, b: d.b })),
+          showSymbol: true,
+          symbol: "circle",
+          symbolSize: (value, params) => (params.dataIndex === data.length - 1 ? 8 : 0),
+          lineStyle: { color: "#2563eb", width: 2.1 },
+          itemStyle: { color: "#2563eb", borderColor: "#fff", borderWidth: 2 },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "rgba(37,99,235,0.14)" },
+              { offset: 1, color: "rgba(37,99,235,0)" },
+            ]),
+          },
+          markLine: {
+            silent: true,
+            symbol: "none",
+            data: [
+              {
+                yAxis: CONFIG.high,
+                lineStyle: { color: "#e5484d", type: "dashed", width: 1.4, opacity: 0.85 },
+                label: {
+                  ...labelBase,
+                  position: "insideStartTop",
+                  formatter: "0.70 创业板高估区",
+                  color: "#b42318",
+                },
+              },
+              {
+                yAxis: CONFIG.low,
+                lineStyle: { color: "#12a150", type: "dashed", width: 1.4, opacity: 0.85 },
+                label: {
+                  ...labelBase,
+                  position: "insideStartBottom",
+                  formatter: "0.30 创业板低估区",
+                  color: "#067647",
+                },
+              },
+            ],
+          },
+          markArea: {
+            silent: true,
+            data: [
+              [
+                { yAxis: CONFIG.high, itemStyle: { color: "rgba(229,72,77,0.055)" } },
+                { yAxis: hi },
+              ],
+              [
+                { yAxis: lo },
+                { yAxis: CONFIG.low, itemStyle: { color: "rgba(18,161,80,0.06)" } },
+              ],
+            ],
+          },
+        },
+      ],
+    }, true);
 
-    const last = data[data.length - 1];
-    const lastX = x(new Date(last.date).getTime()).toFixed(2);
-    const lastY = y(last.ratio).toFixed(2);
-
-    chartEl.innerHTML = `
-      <defs>
-        <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#2563eb" stop-opacity="0.14"/>
-          <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      ${zoneShapes}
-      ${grid}
-      <path d="${areaPath}" fill="url(#areaFill)"/>
-      <path d="${path}" fill="none" stroke="#2563eb" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round"/>
-      <line id="hover-line" x1="0" y1="${m.t}" x2="0" y2="${m.t + ih}" stroke="#98a2b3" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
-      <circle id="hover-dot" cx="0" cy="0" r="3.6" fill="#2563eb" stroke="#fff" stroke-width="1.6" opacity="0"/>
-      <circle cx="${lastX}" cy="${lastY}" r="4.2" fill="#2563eb" stroke="#fff" stroke-width="2"/>
-      ${zoneLabels}
-      ${yLabels}
-      ${xLabels}
-    `;
-
-    state.chart = { data, m, iw, ih, t0, t1, x, y, W, H };
+    chart.resize();
     chartLoading.hidden = true;
     chartError.hidden = true;
-    tooltipEl.hidden = true;
-  }
-
-  function nearestIndex(px) {
-    const c = state.chart;
-    if (!c) return -1;
-    const t = c.t0 + ((px - c.m.l) / c.iw) * (c.t1 - c.t0);
-    const target = t;
-    const arr = c.data;
-    let lo = 0;
-    let hi = arr.length - 1;
-    while (lo < hi) {
-      const mid = Math.floor((lo + hi) / 2);
-      if (new Date(arr[mid].date).getTime() < target) lo = mid + 1;
-      else hi = mid;
-    }
-    if (lo > 0) {
-      const prev = lo - 1;
-      if (
-        Math.abs(new Date(arr[prev].date).getTime() - target) <
-        Math.abs(new Date(arr[lo].date).getTime() - target)
-      ) {
-        return prev;
-      }
-    }
-    return lo;
-  }
-
-  function showTooltip(evt) {
-    if (!state.chart) return;
-    const rect = chartEl.getBoundingClientRect();
-    if (!rect.width) return;
-    const px = ((evt.clientX - rect.left) / rect.width) * state.chart.W;
-    if (px < state.chart.m.l || px > state.chart.W - state.chart.m.r) {
-      hideTooltip();
-      return;
-    }
-    const idx = nearestIndex(px);
-    if (idx < 0) return;
-    const d = state.chart.data[idx];
-    const cx = state.chart.x(new Date(d.date).getTime());
-    const cy = state.chart.y(d.ratio);
-    const line = $("#hover-line");
-    const dot = $("#hover-dot");
-    if (line) {
-      line.setAttribute("x1", cx);
-      line.setAttribute("x2", cx);
-      line.setAttribute("opacity", "1");
-    }
-    if (dot) {
-      dot.setAttribute("cx", cx);
-      dot.setAttribute("cy", cy);
-      dot.setAttribute("opacity", "1");
-    }
-
-    tooltipEl.innerHTML =
-      `<div><span>${d.date}</span></div>` +
-      `<div><b>${fmt.ratio(d.ratio)}</b> <span>比值</span></div>` +
-      `<div><span>创业板指</span> ${d.a.toFixed(2)}</div>` +
-      `<div><span>中证红利</span> ${d.b.toFixed(2)}</div>`;
-    tooltipEl.hidden = false;
-
-    const wrapRect = chartEl.parentElement.getBoundingClientRect();
-    const left = (cx / state.chart.W) * rect.width + (rect.left - wrapRect.left);
-    const top = (cy / state.chart.H) * rect.height + (rect.top - wrapRect.top);
-    tooltipEl.style.left = `${Math.min(Math.max(left, 86), wrapRect.width - 86)}px`;
-    tooltipEl.style.top = `${top - 8}px`;
-  }
-
-  function hideTooltip() {
-    tooltipEl.hidden = true;
-    const line = $("#hover-line");
-    const dot = $("#hover-dot");
-    if (line) line.setAttribute("opacity", "0");
-    if (dot) dot.setAttribute("opacity", "0");
   }
 
   function renderValCard(id, item) {
@@ -1018,8 +975,9 @@
     }
     state.series = series;
     state.priceSource = source;
+    if (!chart) initChart();
     renderSummary();
-    renderChart();
+    if (chart) renderChart();
     renderTargets();
   }
 
@@ -1048,7 +1006,6 @@
     setLoading(true);
     chartLoading.hidden = false;
     chartError.hidden = true;
-    tooltipEl.hidden = true;
 
     await Promise.allSettled([loadMarket(), loadValuation()]);
     setLoading(false);
@@ -1064,13 +1021,10 @@
         b.classList.toggle("active", on);
         b.setAttribute("aria-selected", on ? "true" : "false");
       });
-      tooltipEl.hidden = true;
       if (state.series.length) renderChart();
     });
   });
 
-  chartEl.addEventListener("pointermove", showTooltip);
-  chartEl.addEventListener("pointerleave", hideTooltip);
   refreshBtn.addEventListener("click", loadAll);
   $("#retry").addEventListener("click", loadAll);
 
@@ -1078,7 +1032,10 @@
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      if (state.series.length) renderChart();
+      if (!chart) return;
+      const narrowNow = chartEl.clientWidth < 620;
+      if (narrowNow !== state.narrow) renderChart();
+      else chart.resize();
     }, 150);
   });
 

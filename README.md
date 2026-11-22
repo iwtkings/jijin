@@ -65,6 +65,9 @@ tmp/.venv/bin/python tmp/build_doc.py
 │   ├── 金牌基金经理排行.html
 │   ├── 指数比值.html
 │   ├── 指数估值百分位.html
+│   ├── vendor/
+│   │   ├── echarts.min.js
+│   │   └── README.md
 │   └── style.css
 ├── tmp/
 │   ├── build_doc.py
