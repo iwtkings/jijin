@@ -77,6 +77,14 @@ STATIC_DOCS = [
         "meta": "实时数据 · 东方财富 / 韭圈儿",
         "date": "实时",
     },
+    {
+        "out": "指数估值百分位.html",
+        "title": "核心指数估值百分位",
+        "tag": "市场观察",
+        "desc": "沪深300、中证500、上证50、创业板指等 12 个核心指数的 PE / PB / PS 近 10 年历史百分位与 PE 温度，PE / PB 进入页面自动更新。",
+        "meta": "12 个指数 · 实时 PE / PB",
+        "date": "实时",
+    },
 ]
 
 
@@ -107,7 +115,7 @@ PAGE = """<!DOCTYPE html>
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="index.html">基金理财研究</a>
-    <nav class="site-nav"><a href="index.html">文档目录</a><span aria-hidden="true"> · </span><a href="指数比值.html">指数比值</a></nav>
+    <nav class="site-nav"><a href="index.html">文档目录</a><span aria-hidden="true"> · </span><a href="指数比值.html">指数比值</a><span aria-hidden="true"> · </span><a href="指数估值百分位.html">指数估值</a></nav>
   </div>
 </header>
 <main class="wrap">
@@ -154,6 +162,7 @@ INDEX = """<!DOCTYPE html>
     <ul>
       <li>红利两篇口径不同：宽基红利不含红利低波，红利低波单独成篇；固收+按近 3 年波动率分低/中/高三档，不与红利混排。</li>
       <li>《指数比值》是实时页面，每次打开都会重新获取行情与估值，不随文档快照固化。</li>
+      <li>《核心指数估值百分位》中 PE / PB 与分位实时更新；PS / PS 分位因免费公开接口缺少可跨域的 10 年历史分位，暂用 2026-11-19 / 11-20 固定快照。</li>
       <li>《金牌基金经理评定标准》是方法论文档，《金牌基金经理排行》按该标准对权益与固收+经理分榜排序，两张榜的分数不可跨榜比较。</li>
       <li>收益数据截至 2026-10-30，规模数据截至 2026-09-30；费率 = 管理费 + 托管费，不含申购费与销售服务费。</li>
       <li>“近 3 年年化”是平均每年的复利年化，不是三年收益加总，也不是年度收益的算术平均。</li>

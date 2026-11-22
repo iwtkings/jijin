@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>核心指数估值百分位 · 基金理财研究</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ---------- 指数估值百分位页 ---------- */
+  body.valuation-page {
+    background: #f6f4ef;
+  }
+
+  body.valuation-page .wrap {
+    width: min(1300px, calc(100% - 48px));
+  }
+
+  .valuation-page .site-nav [aria-current="page"] {
+    color: var(--navy);
+    font-weight: 600;
+  }
+
+  .valuation-card {
+    padding: 24px 34px 24px;
+    background: #fff;
+    border: 1px solid #e8e4dc;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(23, 35, 61, .04), 0 18px 40px rgba(23, 35, 61, .035);
+  }
+
+  .valuation-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+
+  .valuation-head-main {
+    min-width: 0;
+  }
+
+  .valuation-title-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 0 0 12px;
+  }
+
+  .valuation-card h1 {
+    margin: 0;
+    color: #0f274b;
+    font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -.02em;
+  }
+
+  .title-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    color: #285fb8;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: 1px solid transparent;
+    transition: color .18s ease, border-color .18s ease;
+  }
+
+  .title-link:hover {
+    color: #0b3d91;
+    border-bottom-color: #0b3d91;
+  }
+
+  .title-link:focus-visible {
+    outline: 2px solid #285fb8;
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .valuation-sub {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 26px;
+    margin: 0;
+    color: #516072;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .valuation-sub .sub-text {
+    white-space: nowrap;
+  }
+
+  .text-link {
+    color: #285fb8;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    white-space: nowrap;
+  }
+
+  .text-link:hover {
+    color: #0b3d91;
+  }
+
+  .valuation-head-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .valuation-date {
+    flex: 0 0 auto;
+    margin: 0 0 2px;
+    color: #667085;
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  #data-date {
+    white-space: nowrap;
+  }
+
+  .updated-at {
+    color: #98a2b3;
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .updated-at:not(:empty)::before {
+    content: " · ";
+  }
+
+  .refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 9px;
+    background: #fff;
+    color: #285fb8;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+
+  .refresh-btn:hover {
+    border-color: #b9c9e4;
+    background: #f8fafc;
+    box-shadow: 0 2px 6px rgba(23, 35, 61, .06);
+  }
+
+  .refresh-btn:focus-visible {
+    outline: 2px solid #285fb8;
+    outline-offset: 2px;
+  }
+
+  .refresh-btn:disabled {
+    opacity: .55;
+    cursor: wait;
+    box-shadow: none;
+  }
+
+  .refresh-icon {
+    display: inline-block;
+    font-size: 15px;
+    line-height: 1;
+    transform-origin: 50% 50%;
+  }
+
+  .refresh-btn.is-spinning .refresh-icon {
+    animation: refresh-spin .9s linear infinite;
+  }
+
+  @keyframes refresh-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .live-note {
+    margin: -6px 0 12px;
+    color: #9a3412;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+
+  .live-note[hidden] {
+    display: none;
+  }
+
+  .scroll-hint {
+    display: none;
+  }
+
+  .valuation-table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #dce2ea;
+    border-radius: 10px;
+    background: #fff;
+    scrollbar-width: thin;
+  }
+
+  .valuation-table {
+    width: 100%;
+    min-width: 1080px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    background: #fff;
+    font-size: 14px;
+  }
+
+  .valuation-table th,
+  .valuation-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e1e7ee;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .valuation-table thead th {
+    padding-top: 14px;
+    padding-bottom: 14px;
+    background: #f7f8fb;
+    border-bottom-color: #dce2ea;
+    color: #516072;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+
+  .valuation-table tbody tr:nth-child(even) {
+    background: #fbfcff;
+  }
+
+  .valuation-table tbody tr:hover {
+    background: #f5f9ff;
+  }
+
+  .valuation-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .index-name {
+    white-space: nowrap;
+  }
+
+  .index-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #163a75;
+    font: inherit;
+    line-height: inherit;
+    cursor: pointer;
+  }
+
+  .index-link strong {
+    color: #163a75;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-decoration-color: rgba(22, 58, 117, .7);
+    text-underline-offset: 4px;
+  }
+
+  .index-link:hover strong,
+  .index-link:focus-visible strong {
+    color: #0b3d91;
+    text-decoration-color: #0b3d91;
+  }
+
+  .index-link:focus-visible {
+    outline: 2px solid #285fb8;
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .index-name small {
+    margin-left: 7px;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .date-cell {
+    color: #667085;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .num {
+    color: #344054;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .pct-cell {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .pct-inset {
+    position: relative;
+    width: 100%;
+    height: 32px;
+    overflow: hidden;
+    background: #eef2f6;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    box-sizing: border-box;
+  }
+
+  .pct-inset__fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 5px 0 0 5px;
+  }
+
+  .pct-inset__label {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    letter-spacing: .01em;
+  }
+
+  .pct-inset--green { border-color: #007a52; }
+  .pct-inset--green .pct-inset__fill { background: #92e6c4; }
+  .pct-inset--green .pct-inset__label { color: #007a52; }
+
+  .pct-inset--blue { border-color: #0969da; }
+  .pct-inset--blue .pct-inset__fill { background: #bbd4ff; }
+  .pct-inset--blue .pct-inset__label { color: #0969da; }
+
+  .pct-inset--red { border-color: #dc3545; }
+  .pct-inset--red .pct-inset__fill { background: #f7e1dd; }
+  .pct-inset--red .pct-inset__label { color: #dc3545; }
+
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+
+  .tag.cold-strong { color: #0e7065; background: #ccfbf1; }
+  .tag.cold { color: #167339; background: #dcfce7; }
+  .tag.normal { color: #344054; background: #eef2f7; }
+  .tag.hot { color: #ad5610; background: #fef3c7; }
+  .tag.hot-strong { color: #a71f1a; background: #fee2e2; }
+  .tag.unknown { color: #667085; background: #f2f4f7; }
+
+  .method {
+    margin-top: 18px;
+    padding: 16px 20px;
+    background: #fff;
+    border: 1px solid #e8e4dc;
+    border-radius: 12px;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.75;
+  }
+
+  .method summary {
+    color: #285fb8;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .method summary::marker {
+    color: #98a2b3;
+  }
+
+  .method-body {
+    margin-top: 8px;
+  }
+
+  .method-body ul {
+    margin: 0;
+    padding-left: 1.25em;
+  }
+
+  .method-body li {
+    margin: 4px 0;
+  }
+
+  .method-body b {
+    color: #344054;
+    font-weight: 600;
+  }
+
+  /* ---------- 指数详情弹窗 ---------- */
+  .detail-dialog {
+    position: relative;
+    width: min(520px, calc(100% - 32px));
+    max-height: calc(100% - 32px);
+    overflow: auto;
+    padding: 24px 26px 22px;
+    background: #fff;
+    border: 1px solid #e8e4dc;
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(23, 35, 61, .2);
+    color: #344054;
+  }
+
+  .detail-dialog::backdrop {
+    background: rgba(15, 23, 42, .38);
+    backdrop-filter: blur(2px);
+  }
+
+  .detail-dialog h2 {
+    margin: 0 0 4px;
+    color: #0f274b;
+    font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+    font-size: 24px;
+    line-height: 1.3;
+  }
+
+  .detail-dialog .detail-meta {
+    margin: 0 0 16px;
+    color: #667085;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .detail-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 8px;
+    background: #f2f4f7;
+    color: #475467;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .detail-close:hover {
+    background: #e4e7ec;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .detail-item {
+    padding: 10px 12px;
+    background: #f8f9fb;
+    border: 1px solid #eaecf0;
+    border-radius: 8px;
+  }
+
+  .detail-item span {
+    display: block;
+    color: #667085;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .detail-item strong {
+    display: block;
+    margin-top: 3px;
+    color: #1f2937;
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+  }
+
+  .detail-note {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid #eaecf0;
+    color: #98a2b3;
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  @media (max-width: 1240px) {
+    .scroll-hint {
+      display: block;
+      margin: 0 0 8px;
+      color: #667085;
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
+  @media (max-width: 1240px) {
+    .valuation-head {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .valuation-head-right {
+      width: 100%;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+    }
+
+    .valuation-date {
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+      white-space: normal;
+    }
+  }
+
+  @media (max-width: 760px) {
+    body.valuation-page .wrap {
+      width: calc(100% - 28px);
+    }
+
+    .valuation-card {
+      padding: 22px 16px 18px;
+      border-radius: 14px;
+    }
+
+    .valuation-card h1 {
+      font-size: 24px;
+    }
+
+    .valuation-sub {
+      display: block;
+      font-size: 14px;
+    }
+
+    .valuation-sub .sub-text {
+      display: block;
+      white-space: normal;
+    }
+
+    .valuation-sub .text-link {
+      display: inline-block;
+      margin-top: 4px;
+      margin-right: 18px;
+    }
+
+    .valuation-head-right {
+      gap: 10px;
+    }
+
+    .updated-at {
+      display: block;
+    }
+
+    .updated-at:not(:empty)::before {
+      content: "";
+    }
+
+    .refresh-btn {
+      height: 38px;
+      padding: 0 11px;
+    }
+
+    .valuation-table {
+      min-width: 1020px;
+    }
+
+    .detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .pct-inset__fill {
+      transition: width .35s ease;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .refresh-btn.is-spinning .refresh-icon {
+      animation: none;
+    }
+  }
+</style>
+</head>
+<body class="valuation-page">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">基金理财研究</a>
+    <nav class="site-nav">
+      <a href="index.html">文档目录</a>
+      <span aria-hidden="true"> · </span>
+      <a href="指数比值.html">指数比值</a>
+      <span aria-hidden="true"> · </span>
+      <span aria-current="page">指数估值</span>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="back"><a href="index.html">← 返回目录</a></div>
+
+  <section class="valuation-card" aria-labelledby="valuation-title">
+    <div class="valuation-head">
+      <div class="valuation-head-main">
+        <div class="valuation-title-row">
+          <h1 id="valuation-title">核心指数估值百分位</h1>
+          <a class="title-link" href="https://baifenwei.com/" target="_blank" rel="noopener noreferrer" title="访问百分位 baifenwei.com">baifenwei.com ↗</a>
+        </div>
+        <p class="valuation-sub">
+          <span class="sub-text">PE / PB / PS 采用近 10 年历史百分位，状态列为 PE 温度。</span>
+          <a class="text-link" href="#method" id="method-link">怎么看估值百分位?</a>
+          <a class="text-link" href="https://baifenwei.com/indices/" target="_blank" rel="noopener noreferrer">查看全部 33 个指数 →</a>
+        </p>
+      </div>
+      <div class="valuation-head-right">
+        <p class="valuation-date" title="PE / PB 实时更新；PS / PS 分位为 2026-11-19 / 11-20 快照">指数数据日：<span id="data-date">2026-11-20</span><span class="updated-at" id="updated-at"></span></p>
+        <button class="refresh-btn" id="refresh" type="button" aria-label="刷新 PE / PB 数据" title="刷新 PE / PB 数据（PS 为快照）">
+          <span class="refresh-icon" aria-hidden="true">↻</span>
+          <span>刷新</span>
+        </button>
+      </div>
+    </div>
+
+    <p class="live-note" id="live-note" hidden></p>
+    <p class="scroll-hint">← 左右滑动查看完整表格 →</p>
+
+    <div class="valuation-table-scroll">
+      <table class="valuation-table" id="valuation-table">
+        <colgroup>
+          <col style="width:19.5%">
+          <col style="width:8.5%">
+          <col style="width:6%">
+          <col style="width:14.5%">
+          <col style="width:5.5%">
+          <col style="width:14.5%">
+          <col style="width:5%">
+          <col style="width:14.5%">
+          <col style="width:12%">
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">指数</th>
+            <th scope="col">数据日</th>
+            <th scope="col">PE</th>
+            <th scope="col">PE 分位</th>
+            <th scope="col">PB</th>
+            <th scope="col">PB 分位</th>
+            <th scope="col" title="PS 为 2026-11-19 / 11-20 快照">PS</th>
+            <th scope="col" title="PS 分位为 2026-11-19 / 11-20 快照">PS 分位</th>
+            <th scope="col">PE 温度</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-code="000300.SH">
+            <td class="index-name"><button class="index-link" type="button" data-code="000300.SH" title="查看详情"><strong>沪深300</strong></button><small>(000300 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">13.53</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--blue" title="PE 分位 67.3%"><span class="pct-inset__fill" style="width:67.3%"></span><span class="pct-inset__label">67.3%</span></div></td>
+            <td class="num" data-field="pb">1.34</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--green" title="PB 分位 21.4%"><span class="pct-inset__fill" style="width:21.4%"></span><span class="pct-inset__label">21.4%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.45</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--red" title="PS 分位 76.3%（快照）"><span class="pct-inset__fill" style="width:76.3%"></span><span class="pct-inset__label">76.3%</span></div></td>
+            <td data-field="temp"><span class="tag normal">正常</span></td>
+          </tr>
+          <tr data-code="000905.SH">
+            <td class="index-name"><button class="index-link" type="button" data-code="000905.SH" title="查看详情"><strong>中证500</strong></button><small>(000905 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">25.67</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--blue" title="PE 分位 50.7%"><span class="pct-inset__fill" style="width:50.7%"></span><span class="pct-inset__label">50.7%</span></div></td>
+            <td class="num" data-field="pb">1.88</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--blue" title="PB 分位 46.3%"><span class="pct-inset__fill" style="width:46.3%"></span><span class="pct-inset__label">46.3%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.30</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--blue" title="PS 分位 66.8%（快照）"><span class="pct-inset__fill" style="width:66.8%"></span><span class="pct-inset__label">66.8%</span></div></td>
+            <td data-field="temp"><span class="tag normal">正常</span></td>
+          </tr>
+          <tr data-code="000016.SH">
+            <td class="index-name"><button class="index-link" type="button" data-code="000016.SH" title="查看详情"><strong>上证50</strong></button><small>(000016 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">12.05</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--red" title="PE 分位 92.1%"><span class="pct-inset__fill" style="width:92.1%"></span><span class="pct-inset__label">92.1%</span></div></td>
+            <td class="num" data-field="pb">1.27</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--blue" title="PB 分位 61.7%"><span class="pct-inset__fill" style="width:61.7%"></span><span class="pct-inset__label">61.7%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.69</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--red" title="PS 分位 100.0%（快照）"><span class="pct-inset__fill" style="width:100%"></span><span class="pct-inset__label">100.0%</span></div></td>
+            <td data-field="temp"><span class="tag hot-strong">极热</span></td>
+          </tr>
+          <tr data-code="399001.SZ">
+            <td class="index-name"><button class="index-link" type="button" data-code="399001.SZ" title="查看详情"><strong>深证成指</strong></button><small>(399001 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">23.19</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--green" title="PE 分位 22.2%"><span class="pct-inset__fill" style="width:22.2%"></span><span class="pct-inset__label">22.2%</span></div></td>
+            <td class="num" data-field="pb">2.09</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--green" title="PB 分位 9.9%"><span class="pct-inset__fill" style="width:9.9%"></span><span class="pct-inset__label">9.9%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.48</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--green" title="PS 分位 11.4%（快照）"><span class="pct-inset__fill" style="width:11.4%"></span><span class="pct-inset__label">11.4%</span></div></td>
+            <td data-field="temp"><span class="tag cold">偏冷</span></td>
+          </tr>
+          <tr data-code="399006.SZ">
+            <td class="index-name"><button class="index-link" type="button" data-code="399006.SZ" title="查看详情"><strong>创业板指</strong></button><small>(399006 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">25.08</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--green" title="PE 分位 2.2%"><span class="pct-inset__fill" style="width:2.2%"></span><span class="pct-inset__label">2.2%</span></div></td>
+            <td class="num" data-field="pb">3.52</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--green" title="PB 分位 7.7%"><span class="pct-inset__fill" style="width:7.7%"></span><span class="pct-inset__label">7.7%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">2.51</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--green" title="PS 分位 1.3%（快照）"><span class="pct-inset__fill" style="width:1.3%"></span><span class="pct-inset__label">1.3%</span></div></td>
+            <td data-field="temp"><span class="tag cold-strong">极冷</span></td>
+          </tr>
+          <tr data-code="000922.CSI">
+            <td class="index-name"><button class="index-link" type="button" data-code="000922.CSI" title="查看详情"><strong>中证红利</strong></button><small>(000922 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">9.49</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--red" title="PE 分位 90.1%"><span class="pct-inset__fill" style="width:90.1%"></span><span class="pct-inset__label">90.1%</span></div></td>
+            <td class="num" data-field="pb">0.92</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--blue" title="PB 分位 65.0%"><span class="pct-inset__fill" style="width:65%"></span><span class="pct-inset__label">65.0%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.41</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--red" title="PS 分位 96.9%（快照）"><span class="pct-inset__fill" style="width:96.9%"></span><span class="pct-inset__label">96.9%</span></div></td>
+            <td data-field="temp"><span class="tag hot-strong">极热</span></td>
+          </tr>
+          <tr data-code="000688.SH">
+            <td class="index-name"><button class="index-link" type="button" data-code="000688.SH" title="历史不足 10 年，分位按可得历史计算"><strong>科创50</strong></button><small>(000688 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">90.55</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--blue" title="PE 分位 65.1%"><span class="pct-inset__fill" style="width:65.1%"></span><span class="pct-inset__label">65.1%</span></div></td>
+            <td class="num" data-field="pb">6.11</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--blue" title="PB 分位 60.4%"><span class="pct-inset__fill" style="width:60.4%"></span><span class="pct-inset__label">60.4%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">7.67</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--blue" title="PS 分位 66.3%（快照）"><span class="pct-inset__fill" style="width:66.3%"></span><span class="pct-inset__label">66.3%</span></div></td>
+            <td data-field="temp"><span class="tag normal">正常</span></td>
+          </tr>
+          <tr data-code="HSI.HI">
+            <td class="index-name"><button class="index-link" type="button" data-code="HSI.HI" title="查看详情"><strong>恒生指数</strong></button><small>(HSI · HK)</small></td>
+            <td class="date-cell" data-field="date">2026-11-19</td>
+            <td class="num" data-field="pe">10.32</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--blue" title="PE 分位 49.0%"><span class="pct-inset__fill" style="width:49%"></span><span class="pct-inset__label">49.0%</span></div></td>
+            <td class="num" data-field="pb">1.09</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--blue" title="PB 分位 39.2%"><span class="pct-inset__fill" style="width:39.2%"></span><span class="pct-inset__label">39.2%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.30</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--blue" title="PS 分位 33.6%（快照）"><span class="pct-inset__fill" style="width:33.6%"></span><span class="pct-inset__label">33.6%</span></div></td>
+            <td data-field="temp"><span class="tag normal">正常</span></td>
+          </tr>
+          <tr data-code="HSTECH.HI">
+            <td class="index-name"><button class="index-link" type="button" data-code="HSTECH.HI" title="历史不足 10 年，分位按可得历史计算"><strong>恒生科技</strong></button><small>(HSTECH · HK)</small></td>
+            <td class="date-cell" data-field="date">2026-11-19</td>
+            <td class="num" data-field="pe">18.49</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--green" title="PE 分位 4.9%"><span class="pct-inset__fill" style="width:4.9%"></span><span class="pct-inset__label">4.9%</span></div></td>
+            <td class="num" data-field="pb">1.89</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--green" title="PB 分位 0.6%"><span class="pct-inset__fill" style="width:0.6%"></span><span class="pct-inset__label">0.6%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.23</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--green" title="PS 分位 0.0%（快照）"><span class="pct-inset__fill" style="width:0%"></span><span class="pct-inset__label">0.0%</span></div></td>
+            <td data-field="temp"><span class="tag cold-strong">极冷</span></td>
+          </tr>
+          <tr data-code="000906.SH">
+            <td class="index-name"><button class="index-link" type="button" data-code="000906.SH" title="查看详情"><strong>中证800</strong></button><small>(000906 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">14.82</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--blue" title="PE 分位 62.2%"><span class="pct-inset__fill" style="width:62.2%"></span><span class="pct-inset__label">62.2%</span></div></td>
+            <td class="num" data-field="pb">1.41</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--green" title="PB 分位 23.4%"><span class="pct-inset__fill" style="width:23.4%"></span><span class="pct-inset__label">23.4%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.42</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--blue" title="PS 分位 68.5%（快照）"><span class="pct-inset__fill" style="width:68.5%"></span><span class="pct-inset__label">68.5%</span></div></td>
+            <td data-field="temp"><span class="tag normal">正常</span></td>
+          </tr>
+          <tr data-code="000852.SH">
+            <td class="index-name"><button class="index-link" type="button" data-code="000852.SH" title="查看详情"><strong>中证1000</strong></button><small>(000852 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">33.84</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--green" title="PE 分位 29.5%"><span class="pct-inset__fill" style="width:29.5%"></span><span class="pct-inset__label">29.5%</span></div></td>
+            <td class="num" data-field="pb">1.78</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--green" title="PB 分位 3.9%"><span class="pct-inset__fill" style="width:3.9%"></span><span class="pct-inset__label">3.9%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.26</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--green" title="PS 分位 9.5%（快照）"><span class="pct-inset__fill" style="width:9.5%"></span><span class="pct-inset__label">9.5%</span></div></td>
+            <td data-field="temp"><span class="tag cold">偏冷</span></td>
+          </tr>
+          <tr data-code="399005.SZ">
+            <td class="index-name"><button class="index-link" type="button" data-code="399005.SZ" title="查看详情"><strong>中小板指</strong></button><small>(399005 · CN)</small></td>
+            <td class="date-cell" data-field="date">2026-11-20</td>
+            <td class="num" data-field="pe">21.95</td>
+            <td class="pct-cell" data-pct="pe"><div class="pct-inset pct-inset--green" title="PE 分位 15.8%"><span class="pct-inset__fill" style="width:15.8%"></span><span class="pct-inset__label">15.8%</span></div></td>
+            <td class="num" data-field="pb">2.31</td>
+            <td class="pct-cell" data-pct="pb"><div class="pct-inset pct-inset--green" title="PB 分位 3.1%"><span class="pct-inset__fill" style="width:3.1%"></span><span class="pct-inset__label">3.1%</span></div></td>
+            <td class="num" data-field="ps" title="PS 为 2026-11-19 / 11-20 快照">1.61</td>
+            <td class="pct-cell" data-pct="ps"><div class="pct-inset pct-inset--green" title="PS 分位 7.7%（快照）"><span class="pct-inset__fill" style="width:7.7%"></span><span class="pct-inset__label">7.7%</span></div></td>
+            <td data-field="temp"><span class="tag cold">偏冷</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <details class="method" id="method" open>
+    <summary>口径与方法说明</summary>
+    <div class="method-body">
+      <ul>
+        <li><b>PE / PB</b>：来自韭圈儿公开接口（东方财富公开行情接口不提供指数估值历史分位），采用近 10 年历史百分位；每次打开页面自动获取，接口不可用时回退到 2026-11-19 / 11-20 快照。</li>
+        <li><b>PS / PS 分位</b>：为 2026-11-19 / 11-20 固定快照。免费公开接口目前不提供可跨域的 PS 10 年历史分位，因此这两列不随页面刷新变化。</li>
+        <li><b>PE 温度</b>：按 PE 分位划分，&lt;10% 极冷、10%–30% 偏冷、30%–70% 正常、70%–90% 热、≥90% 极热。</li>
+        <li>科创50、恒生科技历史不足 10 年，分位按可得历史计算；指数名称的悬停提示中有标注。</li>
+        <li>历史百分位只描述当前估值在历史样本中的位置，不代表未来涨跌；本页仅作数据梳理，不构成投资建议。</li>
+      </ul>
+    </div>
+  </details>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">历史收益不代表未来表现 · 仅作数据梳理，不构成投资建议</div>
+</footer>
+
+<dialog class="detail-dialog" id="detail-dialog" aria-labelledby="detail-title">
+  <form method="dialog">
+    <button class="detail-close" type="submit" aria-label="关闭">×</button>
+  </form>
+  <h2 id="detail-title">—</h2>
+  <p class="detail-meta" id="detail-meta">—</p>
+  <div class="detail-grid" id="detail-grid"></div>
+  <p class="detail-note">PS 为 2026-11-19 / 11-20 快照；PE / PB 为实时数据。历史分位只描述当前估值在历史样本中的位置，不代表未来涨跌。</p>
+</dialog>
+
+<script>
+(() => {
+  "use strict";
+
+  const INDICES = [
+    { code: "000300.SH", name: "沪深300", short: "000300 · CN", date: "2026-11-20", pe: 13.53, pePct: 67.3, pb: 1.34, pbPct: 21.4, ps: 1.45, psPct: 76.3 },
+    { code: "000905.SH", name: "中证500", short: "000905 · CN", date: "2026-11-20", pe: 25.67, pePct: 50.7, pb: 1.88, pbPct: 46.3, ps: 1.30, psPct: 66.8 },
+    { code: "000016.SH", name: "上证50", short: "000016 · CN", date: "2026-11-20", pe: 12.05, pePct: 92.1, pb: 1.27, pbPct: 61.7, ps: 1.69, psPct: 100.0 },
+    { code: "399001.SZ", name: "深证成指", short: "399001 · CN", date: "2026-11-20", pe: 23.19, pePct: 22.2, pb: 2.09, pbPct: 9.9, ps: 1.48, psPct: 11.4 },
+    { code: "399006.SZ", name: "创业板指", short: "399006 · CN", date: "2026-11-20", pe: 25.08, pePct: 2.2, pb: 3.52, pbPct: 7.7, ps: 2.51, psPct: 1.3 },
+    { code: "000922.CSI", name: "中证红利", short: "000922 · CN", date: "2026-11-20", pe: 9.49, pePct: 90.1, pb: 0.92, pbPct: 65.0, ps: 1.41, psPct: 96.9 },
+    { code: "000688.SH", name: "科创50", short: "000688 · CN", date: "2026-11-20", pe: 90.55, pePct: 65.1, pb: 6.11, pbPct: 60.4, ps: 7.67, psPct: 66.3, historyShort: true },
+    { code: "HSI.HI", name: "恒生指数", short: "HSI · HK", date: "2026-11-19", pe: 10.32, pePct: 49.0, pb: 1.09, pbPct: 39.2, ps: 1.30, psPct: 33.6 },
+    { code: "HSTECH.HI", name: "恒生科技", short: "HSTECH · HK", date: "2026-11-19", pe: 18.49, pePct: 4.9, pb: 1.89, pbPct: 0.6, ps: 1.23, psPct: 0.0, historyShort: true },
+    { code: "000906.SH", name: "中证800", short: "000906 · CN", date: "2026-11-20", pe: 14.82, pePct: 62.2, pb: 1.41, pbPct: 23.4, ps: 1.42, psPct: 68.5 },
+    { code: "000852.SH", name: "中证1000", short: "000852 · CN", date: "2026-11-20", pe: 33.84, pePct: 29.5, pb: 1.78, pbPct: 3.9, ps: 1.26, psPct: 9.5 },
+    { code: "399005.SZ", name: "中小板指", short: "399005 · CN", date: "2026-11-20", pe: 21.95, pePct: 15.8, pb: 2.31, pbPct: 3.1, ps: 1.61, psPct: 7.7 }
+  ];
+
+  const CATEGORIES = ["gm", "jx", "jw", "hy"];
+  const CACHE_KEY = "index-valuation-cache-v2";
+  const CACHE_TTL = 10 * 60 * 1000;
+  const state = new Map(INDICES.map((item) => [item.code, { ...item }]));
+  const dataDateEl = document.getElementById("data-date");
+  const liveNoteEl = document.getElementById("live-note");
+  const detailDialog = document.getElementById("detail-dialog");
+  const refreshBtn = document.getElementById("refresh");
+  const updatedAtEl = document.getElementById("updated-at");
+  let loading = false;
+
+  function valueOrNull(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  }
+
+  function zoneOf(pct) {
+    if (pct < 30) return "green";
+    if (pct < 70) return "blue";
+    return "red";
+  }
+
+  function temperatureOf(pct) {
+    if (!Number.isFinite(pct)) return { label: "—", cls: "unknown" };
+    if (pct < 10) return { label: "极冷", cls: "cold-strong" };
+    if (pct < 30) return { label: "偏冷", cls: "cold" };
+    if (pct < 70) return { label: "正常", cls: "normal" };
+    if (pct < 90) return { label: "热", cls: "hot" };
+    return { label: "极热", cls: "hot-strong" };
+  }
+
+  function setText(row, field, text) {
+    const cell = row.querySelector(`[data-field="${field}"]`);
+    if (cell) cell.textContent = text;
+  }
+
+  function setPercent(row, key, pct, label) {
+    const cell = row.querySelector(`[data-pct="${key}"]`);
+    if (!cell) return;
+    const bar = cell.querySelector(".pct-inset");
+    const fill = cell.querySelector(".pct-inset__fill");
+    const text = cell.querySelector(".pct-inset__label");
+    const value = Math.max(0, Math.min(100, pct));
+    bar.className = `pct-inset pct-inset--${zoneOf(value)}`;
+    bar.title = `${label} 分位 ${value.toFixed(1)}%${key === "ps" ? "（快照）" : ""}`;
+    fill.style.width = `${value}%`;
+    text.textContent = `${value.toFixed(1)}%`;
+  }
+
+  function applyRows(rows) {
+    let latestDate = "";
+    let updated = 0;
+
+    INDICES.forEach((item) => {
+      const live = rows.get(item.code);
+      if (!live) return;
+
+      const pe = valueOrNull(live.pe);
+      const pePct = valueOrNull(live.pe_pct);
+      const pb = valueOrNull(live.pb);
+      const pbPct = valueOrNull(live.pb_pct);
+      if (pe === null || pePct === null) return;
+
+      const tr = document.querySelector(`tr[data-code="${item.code}"]`);
+      if (!tr) return;
+
+      const liveDate = String(live.update_time || "");
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(liveDate) ? liveDate : item.date;
+      setText(tr, "date", date);
+      setText(tr, "pe", pe.toFixed(2));
+      setPercent(tr, "pe", pePct, "PE");
+
+      if (pb !== null) setText(tr, "pb", pb.toFixed(2));
+      if (pb !== null && pbPct !== null) setPercent(tr, "pb", pbPct, "PB");
+
+      const temp = temperatureOf(pePct);
+      const tempCell = tr.querySelector('[data-field="temp"]');
+      tempCell.innerHTML = `<span class="tag ${temp.cls}">${temp.label}</span>`;
+      tempCell.title = `PE 分位 ${pePct.toFixed(1)}%`;
+
+      const stored = state.get(item.code);
+      Object.assign(stored, {
+        date,
+        pe,
+        pePct,
+        pb: pb === null ? stored.pb : pb,
+        pbPct: pbPct === null ? stored.pbPct : pbPct,
+        temp
+      });
+
+      if (date > latestDate) latestDate = date;
+      updated += 1;
+    });
+
+    if (latestDate) dataDateEl.textContent = latestDate;
+
+    if (updated === 0) {
+      showNote("实时接口暂不可用，当前为 2026-11-19 / 11-20 快照。");
+    } else if (updated < INDICES.length) {
+      showNote("部分指数实时数据未取到，缺失行显示 2026-11-19 / 11-20 快照。");
+    } else {
+      hideNote();
+    }
+  }
+
+  function showNote(text) {
+    liveNoteEl.textContent = text;
+    liveNoteEl.hidden = false;
+  }
+
+  function hideNote() {
+    liveNoteEl.hidden = true;
+  }
+
+  function setRefreshLoading(isLoading) {
+    if (!refreshBtn) return;
+    refreshBtn.disabled = isLoading;
+    refreshBtn.classList.toggle("is-spinning", isLoading);
+    refreshBtn.setAttribute("aria-busy", String(isLoading));
+  }
+
+  function stampUpdatedAt() {
+    if (!updatedAtEl) return;
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, "0");
+    updatedAtEl.textContent = `更新于 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  }
+
+  async function fetchJSON(url, timeout = 12000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const sep = url.includes("?") ? "&" : "?";
+      const response = await fetch(`${url}${sep}_=${Date.now()}`, {
+        signal: controller.signal,
+        cache: "no-store",
+        headers: { Accept: "application/json" }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function fetchLiveRows() {
+    const results = await Promise.allSettled(
+      CATEGORIES.map((category) =>
+        fetchJSON(`https://ai2.jiucaishuo.com/api/index-valuation?category=${category}`)
+      )
+    );
+    const rows = new Map();
+    results.forEach((result) => {
+      if (result.status !== "fulfilled") return;
+      const list = result.value && result.value.rows;
+      if (!Array.isArray(list)) return;
+      list.forEach((row) => {
+        if (row && row.code) rows.set(row.code, row);
+      });
+    });
+    return rows;
+  }
+
+  function readCache() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null");
+      if (!cached || !cached.rows || Date.now() - cached.ts > CACHE_TTL) return null;
+      return new Map(Object.entries(cached.rows));
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeCache(rows) {
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+        ts: Date.now(),
+        rows: Object.fromEntries(rows)
+      }));
+    } catch (error) {
+      /* sessionStorage 不可用时忽略 */
+    }
+  }
+
+  async function refresh(force = false) {
+    if (loading) return;
+    loading = true;
+    setRefreshLoading(true);
+
+    if (force) {
+      try {
+        sessionStorage.removeItem(CACHE_KEY);
+      } catch (error) {
+        /* sessionStorage 不可用时忽略 */
+      }
+    } else {
+      const cached = readCache();
+      if (cached) applyRows(cached);
+    }
+
+    try {
+      const rows = await fetchLiveRows();
+      if (rows.size === 0) throw new Error("empty");
+      applyRows(rows);
+      writeCache(rows);
+      stampUpdatedAt();
+    } catch (error) {
+      showNote(force
+        ? "刷新失败，已保留当前数据；PS 为 2026-11-19 / 11-20 快照。"
+        : "实时接口暂不可用，已保留当前数据；PS 为 2026-11-19 / 11-20 快照。");
+    } finally {
+      loading = false;
+      setRefreshLoading(false);
+    }
+  }
+
+  function openDetail(code) {
+    const item = state.get(code);
+    if (!item || !detailDialog) return;
+
+    const temp = item.temp || temperatureOf(item.pePct);
+    document.getElementById("detail-title").textContent = item.name;
+    document.getElementById("detail-meta").textContent = `${item.short} · 数据日 ${item.date}`;
+    document.getElementById("detail-grid").innerHTML = `
+      <div class="detail-item"><span>PE</span><strong>${Number(item.pe).toFixed(2)}</strong></div>
+      <div class="detail-item"><span>PE 分位</span><strong>${Number(item.pePct).toFixed(1)}%</strong></div>
+      <div class="detail-item"><span>PE 温度</span><strong>${temp.label}</strong></div>
+      <div class="detail-item"><span>PB</span><strong>${Number(item.pb).toFixed(2)}</strong></div>
+      <div class="detail-item"><span>PB 分位</span><strong>${Number(item.pbPct).toFixed(1)}%</strong></div>
+      <div class="detail-item"><span>PS（快照）</span><strong>${Number(item.ps).toFixed(2)}</strong></div>
+      <div class="detail-item"><span>PS 分位（快照）</span><strong>${Number(item.psPct).toFixed(1)}%</strong></div>
+      <div class="detail-item"><span>数据日</span><strong>${item.date}</strong></div>
+      <div class="detail-item"><span>历史区间</span><strong>${item.historyShort ? "不足 10 年" : "近 10 年"}</strong></div>
+    `;
+
+    if (typeof detailDialog.showModal === "function") {
+      detailDialog.showModal();
+    } else {
+      detailDialog.setAttribute("open", "");
+    }
+  }
+
+  document.querySelectorAll(".index-link").forEach((button) => {
+    button.addEventListener("click", () => openDetail(button.dataset.code));
+  });
+
+  if (detailDialog) {
+    detailDialog.addEventListener("click", (event) => {
+      if (event.target === detailDialog) detailDialog.close();
+    });
+  }
+
+  const methodLink = document.getElementById("method-link");
+  if (methodLink) {
+    methodLink.addEventListener("click", () => {
+      const method = document.getElementById("method");
+      if (method) method.open = true;
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => refresh(true));
+  }
+
+  refresh();
+})();
+</script>
+</body>
+</html>
